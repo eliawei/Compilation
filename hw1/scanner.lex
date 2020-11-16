@@ -30,6 +30,7 @@ COMMENT 		"//".*
 ID 				{LETTER}({LETTER}|{DIGIT})*
 NUM 			[1-9]({DIGIT})*
 PRINTABLE 		(" "|"!"|[#-/]|[1-~])
+PRINTABLE 		(" "|"!"|[#-~]|"\\\"")
 STRING 			"\""({PRINTABLE})*"\""
 
 %%
@@ -70,7 +71,7 @@ void showString(){
 	while(cur_char != '\"'){
 		if(cur_char != '\\'){
 			str += cur_char;
-	               i_lexeme++;
+	        i_lexeme++;
 		}
 		else{
 			switch(yytext[i_lexeme+1]){
@@ -125,7 +126,7 @@ void showString(){
 
 void check_string_errors(){
 	int index = 0;
-	if(yytext[yyleng - 1] == '\\'){
+	if(yytext[yyleng - 2] == '\\'){
 		cout << "Error unclosed string" << endl;
 		exit(0);
 	}
