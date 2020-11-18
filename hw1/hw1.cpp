@@ -5,7 +5,7 @@ using namespace std;
 
 
 void showToken(string);
-void inUpperCase(string);
+void inUpperCase(char*);
 void showString();
 void check_string_errors();
 void hex_error(string);
@@ -17,17 +17,22 @@ int main()
 	// Your code here
 	}
 	return 0;
+	// inUpperCase("add");
 }
 
 void showToken(string name){
-	cout << yylineno << " " + name + " " + yytext << endl;
+	string text=yytext;
+	if(name == "COMMENT"){
+		text = "//";
+	}
+	cout << yylineno << " " + name + " " + text << endl;
 }
 
-void inUpperCase(string lexeme){
-	char token[yyleng+1];
-	for(int i=0; i < yyleng ; i++){
-		token[i] = lexeme[i] + ('A' - 'a');
-	}
+void inUpperCase(char* lexeme){
+	string token;
+	for (char* t = lexeme; *t != '\0'; t++) {
+        token += char(*t + ('A'-'a'));
+    }
 	showToken(token);
 }
 
@@ -41,7 +46,7 @@ void showString(){
 			str += cur_char;
 	        i_lexeme++;
 		}
-		else{
+		else{ 
 			switch(yytext[i_lexeme+1]){
 				case '\\':
 					str += '\\';
@@ -50,12 +55,15 @@ void showString(){
 					str += '\"';
 					break;
 				case 'n':
+					// str += char(10);
 					str += '\n';
 					break;
 				case 'r':
+					// str += char(13);
 					str += '\r';
 					break;	
 				case 't':
+					// str += char(9);
 					str += '\t';
 					break;
 				case '0':

@@ -1,0 +1,39 @@
+1 ID umm
+1 COMMENT //
+2 ID b8byte8if08
+2 SC ;
+2 SC ;
+2 B b
+2 NUM 8
+2 BYTE byte
+2 NUM 8
+2 IF if
+2 NUM 0
+2 NUM 8
+2 SC ;
+2 SC ;
+2 COMMENT //
+Error "
+3 STRING  
+Error \
+3 ID x7A
+3 STRING  
+Error \
+Error \
+3 STRING  
+Error \
+3 ID raa
+Error \
+3 ID n
+Error \
+3 ID rbb
+Error \
+3 ID n
+Error \
+3 NUM 0
+3 ID cc
+3 STRING  
+3 COMMENT //
+Error "
+Error \
+4 ID q

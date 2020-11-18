@@ -1,0 +1,37 @@
+1 STRING a
+2 STRING   	 a_$%&$^&s
+dkfj <>~!=- 4 "'"  
+3 RELOP ==
+3 ASSIGN =
+4 RELOP ==
+4 RELOP ==
+5 RELOP ==
+5 RELOP ==
+5 ASSIGN =
+6 RELOP <=
+6 ASSIGN =
+7 RELOP >=
+7 ASSIGN =
+8 RELOP !=
+8 ASSIGN =
+9 NUM 0
+10 RELOP <
+10 RELOP >
+10 RELOP >
+10 RELOP <
+11 BINOP +
+11 RELOP ==
+11 RELOP !=
+11 BINOP *
+12 COMMA ,
+12 SC ;
+12 COMMA ,
+12 LBRACE {
+12 LBRACE {
+12 RPAREN )
+12 LPAREN (
+12 LPAREN (
+12 LBRACE {
+12 RBRACE }
+13 COMMENT //
+Error undefined escape sequence q

@@ -1,0 +1,11 @@
+1 STRING Hex value jFj
+2 ID blah
+Error "
+Error \
+2 NUM 0
+Error \
+2 NUM 0
+2 ID string
+Error \
+2 ID q
+Error "
