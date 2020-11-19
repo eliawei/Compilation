@@ -9,6 +9,8 @@ void inUpperCase(string);
 void showString();
 void check_string_errors();
 void hex_error(string);
+void showComment();
+void errorUnclosedString();
 
 int main()
 {
@@ -28,10 +30,16 @@ void inUpperCase(string lexeme){
 	for(int i=0; i < yyleng ; i++){
 		token[i] = lexeme[i] + ('A' - 'a');
 	}
+	token[yyleng] = '\0';
 	showToken(token);
 }
 
+void showComment(){
+	cout << yylineno << " COMMENT //" << endl;
+}
+
 void showString(){
+	//cout << "yytext" << yytext <<endl;
 	check_string_errors();
 	string str;
 	int i_lexeme = 1;
@@ -47,6 +55,10 @@ void showString(){
 					str += '\\';
 					break;
 				case '\"':
+					if(i_lexeme == yyleng - 2){
+						cout << "in line 59" << endl;
+						errorUnclosedString();
+					}
 					str += '\"';
 					break;
 				case 'n':
@@ -71,20 +83,23 @@ void showString(){
 						hex_error(hex_char);
 					try{
 						char c = stoul(hex_char, nullptr, 16);
+						if ((c < 32 || c > 126) && c != '\t' && c != '\r' && c != '\n'){
+							hex_error(hex_char);
+						}
 						str += c;
 						i_lexeme += 2;
 					}
 					catch(const invalid_argument& ia){
 						hex_error(hex_char);
 					}
-       }
+       			}
 					break;
 				default:{
 					char c = yytext[i_lexeme+1];
 					cout << "Error undefined escape sequence " << c << endl;
 					exit(0);
-		    }
-      }
+		    	}
+      		}
 			i_lexeme += 2;
 	  }
 		cur_char = yytext[i_lexeme];	
@@ -99,24 +114,24 @@ void showString(){
 		str2 += str[i];
 		
 	}
-	
-	cout << yylineno << " STRING " + str2 << endl;	
+	cout << yylineno << " STRING ";
+	cout << str2 << endl;	
 }
 
 void check_string_errors(){
 	int index = 0;
-	if(yytext[yyleng - 2] == '\\'){
-		cout << "Error unclosed string" << endl;
-		exit(0);
-	}
-	
 	while(yytext[index]){
 		if(yytext[index] == '\n'){
-			cout << "Error unclosed string" << endl;
-			exit(0);
+			cout << "in line 122" << endl;
+			errorUnclosedString();
 		}
 		index++;
 	}
+}
+
+void errorUnclosedString(){
+	cout << "Error unclosed string" << endl;
+	exit(0);
 }
 
 void hex_error(string error){
@@ -126,4 +141,5 @@ void hex_error(string error){
 
 void unkown_char_error(){
 	cout << "Error " << yytext << endl;
+	exit(0);
 }

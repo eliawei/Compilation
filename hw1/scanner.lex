@@ -8,6 +8,8 @@ void showString();
 void check_string_errors();
 void hex_error(string);
 void unkown_char_error();
+void showComment();
+void errorUnclosedString();
 %}
 
 %option yylineno
@@ -20,7 +22,7 @@ DIGIT 			([0-9])
 RESERVED_WORDS ("void"|"int"|"byte"|"b"|"bool"|"and"|"or"|"not"|"true"|"false"|"return"|"if"|"else"|"while"|"break"|"continue")
 SC 				";"
 COMMA 			","
-RLPAREN 		"("
+LPAREN 		    "("
 RPAREN 			")"
 LBRACE 			"{"
 RBRACE 			"}"
@@ -29,16 +31,18 @@ RELOP 			("=="|"!="|"<"|">"|"<="|">=")
 BINOP 			("+"|"-"|"*"|"/")
 COMMENT 		"//".*
 ID 				{LETTER}({LETTER}|{DIGIT})*
-NUM 			[1-9]({DIGIT})*
-PRINTABLE 		(" "|"!"|[#-~]|"\\\"")
+NUM 			("0"|[1-9]({DIGIT})*)
+PRINTABLE 		(" "|"!"|[#-[]|[]-~]|"\\\\"|"\\\""|"\\"([a-zA-Z0-9])+)
 STRING 			"\""({PRINTABLE})*"\""
+QMARK           "\""
 
 %%
 
 {RESERVED_WORDS} 	inUpperCase(yytext);
 {SC} 				showToken("SC");
 {COMMA} 			showToken("COMMA");
-{RLPAREN} 			showToken("RLPAREN");
+{LPAREN} 			showToken("LPAREN");
+{RPAREN} 			showToken("RPAREN");
 {LBRACE} 			showToken("LBRACE");
 {RBRACE} 			showToken("RBRACE");
 {ASSIGN} 			showToken("ASSIGN");
@@ -47,6 +51,9 @@ STRING 			"\""({PRINTABLE})*"\""
 {ID} 				showToken("ID");
 {NUM} 				showToken("NUM");
 {STRING} 			showString();
+{COMMENT}           showComment();
+{QMARK}             errorUnclosedString();
+{WHITESPACE}        ;
 .					unkown_char_error();
 
 %%
