@@ -32,7 +32,7 @@ BINOP 			("+"|"-"|"*"|"/")
 COMMENT 		"//".*
 ID 				{LETTER}({LETTER}|{DIGIT})*
 NUM 			("0"|[1-9]({DIGIT})*)
-PRINTABLE 		(" "|"!"|[#-[]|[]-~]|"\\\\"|"\\\""|"\\"([a-zA-Z0-9])+)
+PRINTABLE 		(" "|"\t"|"!"|[#-[]|[]-~]|"\\".)
 STRING 			"\""({PRINTABLE})*"\""
 QMARK           "\""
 

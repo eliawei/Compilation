@@ -1,0 +1,6 @@
+1 ID text
+1 ASSIGN =
+1 STRING abc 	3 aaca
+2 ID a
+2 ASSIGN =
+Error unclosed string

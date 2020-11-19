@@ -7,7 +7,6 @@ using namespace std;
 void showToken(string);
 void inUpperCase(string);
 void showString();
-void check_string_errors();
 void hex_error(string);
 void showComment();
 void errorUnclosedString();
@@ -65,7 +64,7 @@ void showString(){
 					str += '\t';
 					break;
 				case '0':
-					str += '@';
+					str += '\0';
 					break;
 				case 'x':{
 					string hex_char = "";
@@ -102,7 +101,7 @@ void showString(){
 	string str2 = "";
 	for (int i = 0; i < str.size(); i++)
 	{
-		if (str[i] == '@')
+		if (str[i] == '\0')
 		{	
 			break;
 		}
@@ -113,15 +112,7 @@ void showString(){
 	cout << str2 << endl;	
 }
 
-void check_string_errors(){
-	int index = 0;
-	while(yytext[index]){
-		if(yytext[index] == '\n'){
-			errorUnclosedString();
-		}
-		index++;
-	}
-}
+
 
 void errorUnclosedString(){
 	cout << "Error unclosed string" << endl;
