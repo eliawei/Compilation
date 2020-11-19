@@ -1,0 +1,24 @@
+1 ID umm
+1 COMMENT //
+2 ID b8byte8if08
+2 SC ;
+2 SC ;
+2 B b
+2 NUM 8
+2 BYTE byte
+2 NUM 8
+2 IF if
+2 NUM 0
+2 NUM 8
+2 SC ;
+2 SC ;
+2 COMMENT //
+3 STRING 
+3 STRING z
+3 STRING \
+3 STRING aa
+bb
+
+3 STRING //
+3 STRING 	""
+Error unclosed string

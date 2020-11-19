@@ -39,9 +39,7 @@ void showComment(){
 }
 
 void showString(){
-	//cout << "yytext" << yytext <<endl;
-	check_string_errors();
-	string str;
+	string str = "";
 	int i_lexeme = 1;
 	char cur_char = yytext[i_lexeme];
 	while(cur_char != '\"'){
@@ -55,10 +53,6 @@ void showString(){
 					str += '\\';
 					break;
 				case '\"':
-					if(i_lexeme == yyleng - 2){
-						cout << "in line 59" << endl;
-						errorUnclosedString();
-					}
 					str += '\"';
 					break;
 				case 'n':
@@ -75,15 +69,16 @@ void showString(){
 					break;
 				case 'x':{
 					string hex_char = "";
-					if(yytext[i_lexeme + 2] != '\"')
-						hex_char += yytext[i_lexeme + 2];
-					if(yytext[i_lexeme + 3] && yytext[i_lexeme + 3] != '\"')
-						hex_char += yytext[i_lexeme + 3];
+					for (int j = i_lexeme + 2; j < i_lexeme + 4 && yytext[j] != '\"'; j++)
+					{
+						hex_char += yytext[j];
+					}
+				
 					if(hex_char.size() < 2)
 						hex_error(hex_char);
 					try{
-						char c = stoul(hex_char, nullptr, 16);
-						if ((c < 32 || c > 126) && c != '\t' && c != '\r' && c != '\n'){
+						int c = stoul(hex_char, nullptr, 16);
+						if (c < 0 || c > 127){
 							hex_error(hex_char);
 						}
 						str += c;
@@ -122,7 +117,6 @@ void check_string_errors(){
 	int index = 0;
 	while(yytext[index]){
 		if(yytext[index] == '\n'){
-			cout << "in line 122" << endl;
 			errorUnclosedString();
 		}
 		index++;
