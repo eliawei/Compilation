@@ -1,5 +1,6 @@
 1 STRING Hex value jFj
 2 ID blah
+<<<<<<< HEAD
 Error "
 Error \
 2 NUM 0
@@ -9,3 +10,6 @@ Error \
 Error \
 2 ID q
 Error "
+=======
+Error undefined escape sequence q
+>>>>>>> 294777583b1021c532a34da2e0d6db0d6383b3f0

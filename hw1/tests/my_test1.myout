@@ -13,6 +13,7 @@
 2 SC ;
 2 SC ;
 2 COMMENT //
+<<<<<<< HEAD
 Error "
 3 STRING  
 Error \
@@ -37,3 +38,14 @@ Error \
 Error "
 Error \
 4 ID q
+=======
+3 STRING 
+3 STRING z
+3 STRING \
+3 STRING aa
+bb
+
+3 STRING //
+3 STRING 	""
+Error unclosed string
+>>>>>>> 294777583b1021c532a34da2e0d6db0d6383b3f0

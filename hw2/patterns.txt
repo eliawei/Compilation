@@ -1,0 +1,32 @@
+void
+int
+byte
+b
+bool
+set
+and
+or
+not
+true
+false
+return
+if
+else
+while
+break
+continue
+;
+,
+(
+)
+{
+}
+[
+]
+=
+== | != | < | > | <= | >= | in
++ | - | * | /
+..
+[a-zA-Z][a-zA-Z0-9]*
+0 | [1-9][0-9]*
+"([^\n\r\"\\]|\\[rnt"\\])+"

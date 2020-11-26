@@ -3,5 +3,9 @@
 1 B b
 1 ID amboozled
 2 ID wot
+<<<<<<< HEAD
 Error "
 Error \
+=======
+Error unclosed string
+>>>>>>> 294777583b1021c532a34da2e0d6db0d6383b3f0

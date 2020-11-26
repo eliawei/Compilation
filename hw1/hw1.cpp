@@ -7,8 +7,9 @@ using namespace std;
 void showToken(string);
 void inUpperCase(char*);
 void showString();
-void check_string_errors();
 void hex_error(string);
+void showComment();
+void errorUnclosedString();
 
 int main()
 {
@@ -28,17 +29,21 @@ void showToken(string name){
 	cout << yylineno << " " + name + " " + text << endl;
 }
 
-void inUpperCase(char* lexeme){
-	string token;
-	for (char* t = lexeme; *t != '\0'; t++) {
-        token += char(*t + ('A'-'a'));
-    }
+void inUpperCase(string lexeme){
+	char token[yyleng+1];
+	for(int i=0; i < yyleng ; i++){
+		token[i] = lexeme[i] + ('A' - 'a');
+	}
+	token[yyleng] = '\0';
 	showToken(token);
 }
 
+void showComment(){
+	cout << yylineno << " COMMENT //" << endl;
+}
+
 void showString(){
-	check_string_errors();
-	string str;
+	string str = "";
 	int i_lexeme = 1;
 	char cur_char = yytext[i_lexeme];
 	while(cur_char != '\"'){
@@ -67,32 +72,36 @@ void showString(){
 					str += '\t';
 					break;
 				case '0':
-					str += '@';
+					str += '\0';
 					break;
 				case 'x':{
 					string hex_char = "";
-					if(yytext[i_lexeme + 2] != '\"')
-						hex_char += yytext[i_lexeme + 2];
-					if(yytext[i_lexeme + 3] && yytext[i_lexeme + 3] != '\"')
-						hex_char += yytext[i_lexeme + 3];
+					for (int j = i_lexeme + 2; j < i_lexeme + 4 && yytext[j] != '\"'; j++)
+					{
+						hex_char += yytext[j];
+					}
+				
 					if(hex_char.size() < 2)
 						hex_error(hex_char);
 					try{
-						char c = stoul(hex_char, nullptr, 16);
+						int c = stoul(hex_char, nullptr, 16);
+						if (c < 0 || c > 127){
+							hex_error(hex_char);
+						}
 						str += c;
 						i_lexeme += 2;
 					}
 					catch(const invalid_argument& ia){
 						hex_error(hex_char);
 					}
-       }
+       			}
 					break;
 				default:{
 					char c = yytext[i_lexeme+1];
 					cout << "Error undefined escape sequence " << c << endl;
 					exit(0);
-		    }
-      }
+		    	}
+      		}
 			i_lexeme += 2;
 	  }
 		cur_char = yytext[i_lexeme];	
@@ -100,31 +109,22 @@ void showString(){
 	string str2 = "";
 	for (int i = 0; i < str.size(); i++)
 	{
-		if (str[i] == '@')
+		if (str[i] == '\0')
 		{	
 			break;
 		}
 		str2 += str[i];
 		
 	}
-	
-	cout << yylineno << " STRING " + str2 << endl;	
+	cout << yylineno << " STRING ";
+	cout << str2 << endl;	
 }
 
-void check_string_errors(){
-	int index = 0;
-	if(yytext[yyleng - 2] == '\\'){
-		cout << "Error unclosed string" << endl;
-		exit(0);
-	}
-	
-	while(yytext[index]){
-		if(yytext[index] == '\n'){
-			cout << "Error unclosed string" << endl;
-			exit(0);
-		}
-		index++;
-	}
+
+
+void errorUnclosedString(){
+	cout << "Error unclosed string" << endl;
+	exit(0);
 }
 
 void hex_error(string error){
@@ -134,4 +134,5 @@ void hex_error(string error){
 
 void unkown_char_error(){
 	cout << "Error " << yytext << endl;
+	exit(0);
 }

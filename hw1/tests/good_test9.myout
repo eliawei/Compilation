@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 Error "
 1 ID multi
 1 BINOP -
 1 ID lined
 2 ID string
 Error "
+=======
+Error unclosed string
+>>>>>>> 294777583b1021c532a34da2e0d6db0d6383b3f0
