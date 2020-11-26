@@ -3,7 +3,6 @@
 #include <string>
 #include "parser.tab.hpp"
 using namespace std;
-void print_test();
 %}
 
 %option yylineno
@@ -48,6 +47,3 @@ void print_test();
 
 %%
 
-void print_test(){
-    cout<<yylineno<<": "<<yytext<<endl;
-}
