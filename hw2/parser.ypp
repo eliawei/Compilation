@@ -1,187 +1,131 @@
 %{
 // C user declarations
-#include <iostream>
+#include "parser.hpp"
 #include "output.hpp"
+#include <iostream>
+using namespace std;
 using namespace output;
 int yylex();
+extern int yylineno;
 void yyerror(char const*);
 %}
 
 // declerations.
 // TODO: associative etc.
 %token VOID
-%token INT
-%token BYTE
 %token B
-%token BOOL
-%token SET
 %token TRUE
 %token FALSE
-%token RETURN
-%token IF
-%token ELSE
-%token WHILE
-%token BREAK
-%token CONTINUE
 %token SC
 %token COMMA
-%token ASSIGN
-%token AND
-%token OR
-%token RELOP
-%token BINOP
-%token NOT
-%token LPAREN
-%token RPAREN
-%token LBRACE
-%token RBRACE
-%token LBRACKET
-%token RBRACKET
 %token DOTS
-%token ID
 %token NUM
 %token STRING
+%token INT
+%token BYTE
+%token BOOL
+%token SET
+%token ID
+%right ASSIGN
+%left OR
+%left AND
+%left RELOP_EQ
+%nonassoc RELOP_REST
+%left RELOP_IN
+%left BINOP_PM
+%left BINOP_MD
+%right NOT
+%left LPAREN
+%left RPAREN
+%left LBRACE
+%left RBRACE
+%left LBRACKET
+%left RBRACKET
+%nonassoc ELSE
+%nonassoc BREAK
+%nonassoc CONTINUE
+%nonassoc RETURN
+%nonassoc WHILE
+%nonassoc IF
 
 // Rules
 %%
 Program:
-	Funcs { printProductionRule(1); }
+	Funcs { printProductionRule(1); $$ = $1; }
 ;
 Funcs: 
-	FuncDecl Funcs { printProductionRule(3); }
-	| { printProductionRule(2); }
+	FuncDecl Funcs { printProductionRule(3);  $$ = new Funcs($1, $2);}
+	| { printProductionRule(2); $$ = new Funcs(); }
 ;
 FuncDecl:
-	RetType ID LPAREN Formals RPAREN LBRACE Statements RBRACE { printProductionRule(4); }
+	RetType ID LPAREN Formals RPAREN LBRACE Statements RBRACE { printProductionRule(4); 
+																$$ = new FuncDecl($1, $2, $4, $7);}
 ;
 RetType:
-	Type { printProductionRule(5); }
-;
-RetType:
-	VOID { printProductionRule(6); }
+	Type { printProductionRule(5); $$ = $1; }
+	| VOID { printProductionRule(6); $$ = $1; }
 ;
 Formals:
-	/*epsilon*/ { printProductionRule(7); }
-;
-Formals:
-	FormalsList { printProductionRule(8); }
+	/*epsilon*/ { printProductionRule(7); $$ = new FormalsList(); }
+	| FormalsList { printProductionRule(8); $$ = $1; }
 ;
 FormalsList:
-	FormalDecl { printProductionRule(9); }
-;
-FormalsList:
-	FuncDecl COMMA FormalsList { printProductionRule(10); }
+	FormalDecl { printProductionRule(9); $$ = new FormalsList($1); }
+	| FormalDecl COMMA FormalsList { printProductionRule(10); $$ = new FormalsList($1, $3); }
 ;
 FormalDecl:
-	Type ID { printProductionRule(11); }
+	Type ID { printProductionRule(11); $$ = new Declaration($1, $2); }
 ;
 Statements:
-	Statement { printProductionRule(12); }
-;
-Statements:
-	Statements Statement { printProductionRule(13); }
+	Statement { printProductionRule(12); $$ = new Statements($1); }
+	| Statements Statement { printProductionRule(13); $$ = new Statements($2, $1); }
 ;
 Statement:
-	LBRACE Statements RBRACE { printProductionRule(14); }
-;
-Statement:
-	Type ID SC { printProductionRule(15); }
-;
-Statement:
-	Type ID ASSIGN Exp SC { printProductionRule(16); }
-;
-Statement:
-	ID ASSIGN Exp SC { printProductionRule(17); }
-;
-Statement:
-	Call SC { printProductionRule(18); }
-;
-Statement:
-	RETURN SC { printProductionRule(19); }
-;
-Statement:
-	RETURN Exp SC { printProductionRule(20); }
-;
-Statement:
-	IF LPAREN Exp RPAREN Statement { printProductionRule(21); }
-;
-Statement:
-	IF LPAREN Exp RPAREN Statement ELSE Statement { printProductionRule(22); }
-;
-Statement:
-	WHILE LPAREN Exp RPAREN Statement { printProductionRule(23); }
-;
-Statement:
-	BREAK SC { printProductionRule(24); }
-;
-Statement:
-	CONTINUE SC { printProductionRule(25); }
+	LBRACE Statements RBRACE { printProductionRule(14); $$ = $2; }
+	| Type ID SC { printProductionRule(15); $$ = new Declaration($1, $2); }
+	| Type ID ASSIGN Exp SC { printProductionRule(16); $$ = new Declaration($1, $2, $4); }
+	| ID ASSIGN Exp SC { printProductionRule(17); $$ = new Assignment($1, $3); }
+	| Call SC { printProductionRule(18); $$ = $1; }
+	| RETURN SC { printProductionRule(19); $$ = new Return(); }
+	| RETURN Exp SC { printProductionRule(20); $$ = new Return($1); }
+	| IF LPAREN Exp RPAREN Statement { printProductionRule(21); $$ = new If($3, $5); }
+	| IF LPAREN Exp RPAREN Statement ELSE Statement { printProductionRule(22); $$ = new If($3, $5, $7);}
+	| WHILE LPAREN Exp RPAREN Statement { printProductionRule(23); $$ = new While($3, $5); }
+	| BREAK SC { printProductionRule(24); $$ = $1; }
+	| CONTINUE SC { printProductionRule(25); $$ = $1; }
 ;
 Call:
-	ID LPAREN ExpList RPAREN { printProductionRule(26); }
-;
-Call:
-	ID LPAREN RPAREN { printProductionRule(27); }
+	ID LPAREN ExpList RPAREN { printProductionRule(26); $$ = new Call($1, $3); }
+	| ID LPAREN RPAREN { printProductionRule(27); $$ = new Call($1); }
 ;
 ExpList:
-	Exp { printProductionRule(28); }
-;
-ExpList:
-	Exp COMMA ExpList { printProductionRule(29); }
+	Exp { printProductionRule(28); $$ = new ExpList($1); }
+	| Exp COMMA ExpList { printProductionRule(29); $$ = new ExpList($1, $3); }
 ;
 Type:
-	INT { printProductionRule(30); }
-;
-Type:
-	BYTE { printProductionRule(31); }
-;
-Type:
-	BOOL { printProductionRule(32); }
-;
-Type:
-	SET LBRACKET NUM DOTS NUM RBRACKET { printProductionRule(33); }
+	INT { printProductionRule(30); $$ = $1; }
+	| BYTE { printProductionRule(31); $$ = $1; }
+	| BOOL { printProductionRule(32); $$ = $1; }
+	| SET LBRACKET NUM DOTS NUM RBRACKET { printProductionRule(33); $$ = new Set($3, $5); }
 ;
 Exp:
-	LPAREN Exp RPAREN { printProductionRule(34); }
-;
-Exp:
-	Exp BINOP Exp { printProductionRule(35); }
-;
-Exp:
-	ID { printProductionRule(36); }
-;
-Exp:
-	Call { printProductionRule(37); }
-;
-Exp:
-	NUM { printProductionRule(38); }
-;
-Exp:
-	NUM B { printProductionRule(39); }
-;
-Exp:
-	STRING { printProductionRule(40); }
-;
-Exp:
-	TRUE { printProductionRule(41); }
-;
-Exp:
-	FALSE { printProductionRule(42); }
-;
-Exp:
-	NOT Exp { printProductionRule(43); }
-;
-Exp:
-	Exp AND Exp { printProductionRule(44); }
-;
-Exp:
-	Exp OR Exp { printProductionRule(45); }
-;
-Exp:
-	Exp RELOP Exp { printProductionRule(46); }
-;
-Exp:
-	LPAREN Type RPAREN Exp { printProductionRule(47); }
+	LPAREN Exp RPAREN { printProductionRule(34); $$ = $2; }
+	| Exp BINOP_MD Exp { printProductionRule(35); $$ = new Binop($1, $3, $2); }
+	| Exp BINOP_PM Exp { printProductionRule(35); $$ = new Binop($1, $3, $2); }
+	| ID { printProductionRule(36); $$ = $1; }
+	| Call { printProductionRule(37); $$ = $1; }
+	| NUM { printProductionRule(38); $$ = $1; }
+	| NUM B { printProductionRule(39); $$ = new NumB($1); }
+	| STRING { printProductionRule(40); $$ = $1; }
+	| TRUE { printProductionRule(41); $$ = $1; }
+	| FALSE { printProductionRule(42); $$ = $1; }
+	| NOT Exp { printProductionRule(43); $$ = new Not($2); }
+	| Exp AND Exp { printProductionRule(44); $$ = new And($1, $3); }
+	| Exp OR Exp { printProductionRule(45); $$ = new Or($1, $3); }
+	| Exp RELOP_EQ Exp { printProductionRule(46); $$ = new Relop($1, $3, $2); }
+	| Exp RELOP_REST Exp { printProductionRule(46); $$ = new Relop($1, $3, $2); }
+	| Exp RELOP_IN Exp { printProductionRule(46); $$ = new Relop($1, $3, $2); }
+	| LPAREN Type RPAREN Exp { printProductionRule(47); $$ = $4; }
 ;
 %%
 
@@ -192,4 +136,8 @@ int main(void) {
   	while (parse = yyparse()){};
 	return 0;
 }
-void yyerror(char const* s){}
+
+void yyerror(char const* s){
+	errorSyn(yylineno);
+	exit(0);
+}
