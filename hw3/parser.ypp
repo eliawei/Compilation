@@ -1,0 +1,162 @@
+%{
+// C user declarations
+#include "parser.hpp"
+#include "hw3_output.hpp"
+#include "symbolTable.hpp"
+#include <iostream>
+using namespace std;
+using namespace output;
+SymbolTable* symbol_table;
+int yylex();
+extern int yylineno;
+void yyerror(char const*);
+%}
+
+// declerations.
+// TODO: associative etc.
+%token VOID
+%token B
+%token TRUE
+%token FALSE
+%token SC
+%token COMMA
+%token DOTS
+%token NUM
+%token STRING
+%token INT
+%token BYTE
+%token BOOL
+%token SET
+%token ID
+%right ASSIGN
+%left OR
+%left AND
+%left RELOP_EQ
+%nonassoc RELOP_REST
+%nonassoc RELOP_IN
+%left BINOP_PM
+%left BINOP_MD
+%right NOT
+%left LPAREN
+%left RPAREN
+%left LBRACE
+%left RBRACE
+%left LBRACKET
+%left RBRACKET
+%nonassoc ELSE
+%nonassoc BREAK
+%nonassoc CONTINUE
+%nonassoc RETURN
+%nonassoc WHILE
+%nonassoc IF
+
+// Rules
+%%
+Program:
+	M Funcs { $$ = $1; symbol_table->exitScope(); }
+;
+M:
+/*epsilon*/ { symbol_table = new SymbolTable(); }
+;
+Funcs: 
+	FuncDecl Funcs { $$ = new Funcs($1, $2); }
+	| { $$ = new Funcs(); }
+;
+FuncDecl:
+	RetType ID LPAREN Formals RPAREN { symbol_table->insertFunction($2, $1, $4); }
+	LBRACE Statements RBRACE { symbol_table->exitScope(); }
+;
+RetType:
+	Type {$$ = $1; }
+	| VOID {$$ = $1; }
+;
+Formals:
+	/*epsilon*/ {$$ = new FormalsList(); }
+	| FormalsList {$$ = $1; }
+;
+FormalsList:
+	FormalDecl {$$ = new FormalsList($1);}
+	| FormalDecl COMMA FormalsList { $$ = new FormalsList($1, $3); }
+;
+FormalDecl:
+	Type ID { $$ = new Declaration($1, $2); }
+;
+Statements:
+	Statement { $$ = new Statements($1); }
+	| Statements Statement { $$ = new Statements($2, $1); }
+;
+Statement:
+	LBRACE { symbol_table->enterScope(); }
+			Statements RBRACE {symbol_table->exitScope(); $$ = $2; }
+	| Type ID SC { symbol_table->insert($1, $2); $$ = new Declaration($1, $2); }
+	| Type ID ASSIGN Exp SC { symbol_table->insert($1, $2); $$ = new Declaration($1, $2, $4); }
+	| ID ASSIGN Exp SC { $$ = new Assignment($1, $3); }
+	| Call SC { $$ = $1; }
+	| RETURN SC { $$ = new Return(); }
+	| RETURN Exp SC { $$ = new Return($1); }
+	| IF LPAREN Exp RPAREN MIF Statement { symbol_table->exitScope(); $$ = new If($3, $5); }
+	| IF LPAREN Exp RPAREN MIF Statement ELSE { symbol_table->exitScope(); symbol_table->enterScope();}
+		Statement { symbol_table->exitScope(); $$ = new If($3, $5, $7);}
+	| WHILE LPAREN Exp RPAREN { symbol_table->enterScope(true); }
+		 Statement { symbol_table->exitScope(); $$ = new While($3, $5); }
+	| BREAK SC { if(!symbol_table->isWhileScope()){
+					output::errorUnexpectedBreak(yylineno);
+					exit(1);
+				}
+				$$ = $1; }
+	| CONTINUE SC { if(!symbol_table->isWhileScope()){
+						output::errorUnexpectedContinue(yylineno);
+						exit(1);
+					}
+					$$ = $1; }
+;
+MIF:
+	/*epsilon*/ { symbol_table->enterScope(); }
+;
+Call:
+	ID LPAREN ExpList RPAREN { $$ = new Call($1, $3); }
+	| ID LPAREN RPAREN { $$ = new Call($1); }
+;
+ExpList:
+	Exp { $$ = new ExpList($1); }
+	| Exp COMMA ExpList { $$ = new ExpList($1, $3); }
+;
+Type:
+	INT { $$ = $1; }
+	| BYTE { $$ = $1; }
+	| BOOL { $$ = $1; }
+	| SET LBRACKET NUM DOTS NUM RBRACKET { $$ = $1; }
+;
+Exp:
+	LPAREN Exp RPAREN { $$ = $2; }
+	| Exp BINOP_MD Exp { $$ = new Binop($1, $3, $2); }
+	| Exp BINOP_PM Exp { $$ = new Binop($1, $3, $2); }
+	| ID { $$ = $1; }
+	| Call { $$ = $1; }
+	| NUM { $$ = $1; }
+	| NUM B { $$ = new NumB($1); }
+	| STRING { $$ = $1; }
+	| TRUE { $$ = $1; }
+	| FALSE { $$ = $1; }
+	| NOT Exp { $$ = new Not($2); }
+	| Exp AND Exp { $$ = new And($1, $3); }
+	| Exp OR Exp { $$ = new Or($1, $3); }
+	| Exp RELOP_EQ Exp { $$ = new Relop($1, $3, $2); }
+	| Exp RELOP_REST Exp { $$ = new Relop($1, $3, $2); }
+	| Exp RELOP_IN Exp { $$ = new Relop($1, $3, $2); }
+	| LPAREN Type RPAREN Exp { $$ = $4; }
+;
+%%
+
+// C user routines
+
+int main(void) {
+	int parse;
+  	while (parse = yyparse()){};
+	return 0;
+}
+
+void yyerror(char const* s){
+	errorSyn(yylineno);
+	exit(0);
+}
