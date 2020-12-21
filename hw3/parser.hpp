@@ -20,6 +20,13 @@ struct Token : public Node{
     }
 };
 
+struct Expression : public Node{
+    string type;
+
+    Expression(): type(""){}
+
+    Expression(string type): type(type){}
+};
 struct Funcs : public Node{
     Node* func;
     Node* next;
@@ -56,6 +63,7 @@ struct Statements : public Node{
     Statements(Node* value) : value(value), next(NULL) {}
     Statements(Node* value, Node* next) : value(value), next(next) {}
 };
+
 
 struct Declaration : public Node{
     Node* type;
@@ -96,21 +104,26 @@ struct While : public Node{
     While(Node* condition, Node* to_do) : condition(condition), to_do(to_do) {}
 };
 
-struct Call : public Node{
-    Node* func_name;
-    Node* args;
-
-    Call(Node* func_name) : func_name(func_name), args(NULL) {}
-    Call(Node* func_name, Node* args) : func_name(func_name), args(args) {}
-};
-
 struct ExpList : public Node{
-    Node* value;
-    Node* next;
+    ExpList* next;
+    Expression* value;
 
-    ExpList(Node* value) : value(value), next(NULL) {}
-    ExpList(Node* value, Node* next) : value(value), next(next) {}
+    ExpList(Expression* value) : value(value), next(nullptr) {}
+    ExpList(Expression* value, ExpList* next) : value(value), next(next) {}
 };
+struct Call : public Expression{
+    Token* func_id;
+    ExpList* exp_args;
+
+    Call(Token* func_id, string ret_type) : func_id(func_id), exp_args(nullptr) {
+        type = ret_type;
+    }
+    Call(Token* func_id, ExpList* exp_args, string ret_type) : func_id(func_id), exp_args(exp_args) {
+        type = ret_type;
+    }
+};
+
+
 
 struct Set : public Node{
     Node* from_num;
@@ -135,10 +148,27 @@ struct Relop : public Node{
     Relop(Node* exp1, Node* op, Node* exp2) : exp1(exp1), op(op), exp2(exp2) {}
 };
 
-struct NumB : public Node{
+
+struct Num : public Expression{
     Node* num;
 
-    NumB(Node* num) : num(num) {}
+    Num(Node* num) : num(num) {
+        type = "INT";
+    }
+};
+struct NumB : public Expression{
+    Node* num;
+
+    NumB(Node* num) : num(num) {
+        type = "BYTE";
+    }
+};
+struct Bool : public Expression{
+    Node* val;
+
+    Bool(Node* val) : val(val) {
+        type = "BOOL";
+    }
 };
 
 struct Not : public Node{
@@ -147,11 +177,13 @@ struct Not : public Node{
     Not(Node* exp) : exp(exp){}
 };
 
-struct And : public Node{
+struct And : public Expression{
     Node* exp1;
     Node* exp2;
 
-    And(Node* exp1, Node* exp2) : exp1(exp1), exp2(exp2) {}
+    And(Node* exp1, Node* exp2) : exp1(exp1), exp2(exp2){
+        type = "BOOL";
+    }
 };
 
 struct Or : public Node{
