@@ -5,6 +5,9 @@
 #include "symbolTable.hpp"
 #include "semantic.hpp"
 #include <iostream>
+#include <algorithm> // for copy
+#include <iterator> // for ostream_iterator
+#include <vector>
 using namespace std;
 using namespace output;
 SymbolTable* symbol_table;
@@ -65,7 +68,13 @@ Funcs:
 ;
 FuncDecl:
 	RetType ID LPAREN Formals RPAREN { symbol_table->insertFunction($2, $1, $4); }
-	LBRACE Statements RBRACE { symbol_table->exitScope(); }
+	LBRACE Statements RBRACE {	
+								// if(!semantic::AssignValid((Token*)($1),(Expression*)($8))){
+								// 	output::errorMismatch(yylineno);
+								// 	exit(1);
+								// }
+								symbol_table->exitScope(); 
+							}
 ;
 RetType:
 	Type {$$ = $1; }
@@ -80,7 +89,7 @@ FormalsList:
 	| FormalDecl COMMA FormalsList { $$ = new FormalsList($1, $3); }
 ;
 FormalDecl:
-	Type ID { $$ = new Declaration($1, $2); }
+	Type ID { $$ = new Declaration(((Token*)($1)), ((Token*)($2))); }
 ;
 Statements:
 	Statement { $$ = new Statements($1); }
@@ -89,16 +98,32 @@ Statements:
 Statement:
 	LBRACE { symbol_table->enterScope(); }
 			Statements RBRACE {symbol_table->exitScope(); $$ = $2; }
-	| Type ID SC { symbol_table->insert($1, $2); $$ = new Declaration($1, $2); }
+	| Type ID SC { symbol_table->insert($1, $2); $$ = new Declaration(((Token*)($1)), ((Token*)($2))); }
 	| Type ID ASSIGN Exp SC { 	if(!semantic::AssignValid((Token*)($1),(Expression*)($4))){
 								output::errorMismatch(yylineno);
 								exit(1);
+								}
+								if(symbol_table->isIdentifierDeclared(((Token*)($2))->token)){
+									output::errorDef(yylineno,((Token*)($2))->token);
+									exit(1);
+								}
+							symbol_table->insert($1, $2); $$ = new Declaration(((Token*)($1)), ((Token*)($2)), ((Token*)($4))); }
+	| ID ASSIGN Exp SC { 	if(!symbol_table->isIdentifierDeclared(((Token*)($1))->token)){
+									output::errorUndef(yylineno,((Token*)($2))->token);
+									exit(1);
 							}
-							symbol_table->insert($1, $2); $$ = new Declaration($1, $2, $4); }
-	| ID ASSIGN Exp SC { $$ = new Assignment($1, $3); }
+							string id_type = symbol_table->getType($1);
+							Token* id_type_t = new Token(id_type);
+							if(!semantic::AssignValid(id_type_t,(Expression*)($3))){
+								output::errorMismatch(yylineno);
+								delete id_type_t;
+								exit(1);
+							}
+							delete id_type_t;
+							$$ = new Assignment($1, $3); }
 	| Call SC { $$ = $1; }
 	| RETURN SC { $$ = new Return(); }
-	| RETURN Exp SC { $$ = new Return($1); }
+	| RETURN Exp SC { $$ = new Return((Expression*)($1)); }
 	| IF LPAREN Exp RPAREN MIF Statement { symbol_table->exitScope(); $$ = new If($3, $5); }
 	| IF LPAREN Exp RPAREN MIF Statement ELSE { symbol_table->exitScope(); symbol_table->enterScope();}
 		Statement { symbol_table->exitScope(); $$ = new If($3, $5, $7);}
@@ -119,13 +144,25 @@ MIF:
 	/*epsilon*/ { symbol_table->enterScope(); }
 ;
 Call:
-	ID LPAREN ExpList RPAREN { 	if(!semantic::FuncsArgsTypesValid(symbol_table->getType($1, true, false),(ExpList*)($3))){
-									semantic::errorPrototypeMismatchAux(yylineno, $1, $3);
-            						exit(1);
+	ID LPAREN ExpList RPAREN { 	
+								if(!symbol_table->isIdentifierDeclared(((Token*)($1))->token)){
+									output::errorUndefFunc(yylineno, ((Token*)($1))->token);
+									exit(1);
+								}
+								vector<string>* expected_args = symbol_table->getFuncArgs($1);
+								if(!semantic::FuncsArgsTypesValid(((Token*)($1))->token, expected_args,(ExpList*)($3))){
+									output::errorPrototypeMismatch(yylineno, ((Token*)($1))->token, *expected_args);
+									exit(1);
 								}
 								string ret_type = symbol_table->getType($1, true);
-								$$ = new Call((Token*)($1), (ExpList*)($3), ret_type); }
-	| ID LPAREN RPAREN { 		string ret_type = symbol_table->getType($1, true);
+								$$ = new Call((Token*)($1), (ExpList*)($3), ret_type); 
+							}
+								
+	| ID LPAREN RPAREN { 		if(!symbol_table->isIdentifierDeclared(((Token*)($1))->token)){
+									output::errorUndefFunc(yylineno, ((Token*)($1))->token);
+									exit(1);
+								}
+								string ret_type = symbol_table->getType($1, true);
 								$$ = new Call((Token*)($1),ret_type); }
 ;
 ExpList:
@@ -140,21 +177,21 @@ Type:
 ;
 Exp:
 	LPAREN Exp RPAREN { $$ = $2; }
-	| Exp BINOP_MD Exp { $$ = new Binop($1, $3, $2); }
-	| Exp BINOP_PM Exp { $$ = new Binop($1, $3, $2); }
+	| Exp BINOP_MD Exp { $$ = new Binop((Expression*)($1), (Token*)($2), (Expression*)($3)); }
+	| Exp BINOP_PM Exp { $$ = new Binop((Expression*)($1), (Token*)($2), (Expression*)($3)); }
 	| ID { $$ = new Expression(symbol_table->getType($1)); }
 	| Call { $$ = $1; }
-	| NUM { $$ = new Num($1); }
-	| NUM B { $$ = new NumB($1); }
-	| STRING { $$ = $1; }
-	| TRUE { $$ = new Bool($1); }
-	| FALSE { $$ = new Bool($1); }
-	| NOT Exp { $$ = new Not($2); }
-	| Exp AND Exp { $$ = new And($1, $3); }
-	| Exp OR Exp { $$ = new Or($1, $3); }
-	| Exp RELOP_EQ Exp { $$ = new Relop($1, $3, $2); }
-	| Exp RELOP_REST Exp { $$ = new Relop($1, $3, $2); }
-	| Exp RELOP_IN Exp { $$ = new Relop($1, $3, $2); }
+	| NUM { $$ = new Num((Token*)($1)); }
+	| NUM B { $$ = new NumB((Num*)($1)); }
+	| STRING { $$ = new StringExp((Token*)($1)); }
+	| TRUE { $$ = new Bool((Expression*)($1)); }
+	| FALSE { $$ = new Bool((Expression*)($1)); }
+	| NOT Exp { $$ = new Not((Expression*)($2)); }
+	| Exp AND Exp { $$ = new And((Expression*)($1), (Expression*)($3)); }
+	| Exp OR Exp { $$ = new Or((Expression*)($1), (Expression*)($3)); }
+	| Exp RELOP_EQ Exp { $$ = new Relop((Expression*)($1), (Token*)($3), (Expression*)($2)); }
+	| Exp RELOP_REST Exp { $$ = new Relop((Expression*)($1), (Token*)($3), (Expression*)($2)); }
+	| Exp RELOP_IN Exp { $$ = new Relop((Expression*)($1), (Token*)($3), (Expression*)($2)); }
 	| LPAREN Type RPAREN Exp { $$ = $4; }
 ;
 %%

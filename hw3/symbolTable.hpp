@@ -8,9 +8,12 @@ class ScopeRow{
         string name;
         string type;
         int offset;
-
+        bool is_function;
+        vector<string>* args_types;
+        string ret_type;
         ScopeRow(string name, string type, int offset);
-        ScopeRow(string name, string type);
+        ScopeRow(string name, string type, string ret_type, vector<string>& args_types);
+        ~ScopeRow();
         string getType(string id);
 
 
@@ -30,10 +33,10 @@ class Scope{
         ~Scope();
         void addRow(string name, string type);
         void addRow(string name, string type, int offset); //used for function args - negative values
-        void addFunction(string name, string type);
+        void addFunction(string name, string type, string ret_type, vector<string>& args_types);
         bool isIdentifierInScope(string id);
         string getType(string id);
-        string getFuncArgsTypes(string id);
+        vector<string>* getFuncArgsTypes(string id);
 };
 
 
@@ -65,5 +68,6 @@ class SymbolTable{
     void insertFunction(Node* name, Node* ret_type, Node* args);
     bool isWhileScope();
     bool isIdentifierDeclared(string id);
-    string getType(Node* id1, bool is_function=false, bool ret = true);
+    string getType(Node* id1, bool is_function=false);
+    vector<string>* getFuncArgs(Node* id1);
 };
