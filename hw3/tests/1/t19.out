@@ -1,0 +1,10 @@
+---end scope---
+---end scope---
+---end scope---
+---end scope---
+---end scope---
+---end scope---
+x BYTE -1
+i BYTE 0
+---end scope---
+line 17: type mismatch

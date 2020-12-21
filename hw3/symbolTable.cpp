@@ -10,6 +10,10 @@ ScopeRow::ScopeRow(string name, string type, int offset) : name(name), type(type
 ScopeRow::ScopeRow(string name, string type) : name(name), type(type), offset(0){
 }
 
+string ScopeRow::getType(string id){
+    if(this->name == id) return this->type;
+    return {}; // empty string 
+}
 
 
 
@@ -19,6 +23,11 @@ Scope::Scope(int offset) {
     scope_st = new vector<ScopeRow*>();
     cur_offset = offset;
     is_while = false;
+}
+
+Scope::~Scope(){
+    scope_st->clear();
+    delete scope_st;
 }
 
 void Scope::addRow(string name, string type){
@@ -46,7 +55,14 @@ bool Scope::isIdentifierInScope(string id){
     return false;
 }
 
-
+string Scope::getType(string id){
+    for(int i = 0; i < scope_st->size(); i++){
+        ScopeRow* current_row = (*scope_st)[i];
+        string type = current_row->getType(id);
+        if(!type.empty()) return type;
+    }
+    return {};// empty string 
+}
 
 
 
@@ -72,6 +88,10 @@ SymbolTable::SymbolTable(){
     tables_stack->push_back(global_scope);
 
 }
+SymbolTable::~SymbolTable(){
+    tables_stack->clear();
+    delete tables_stack;
+}
 
 void SymbolTable::enterScope(bool is_while) {
     Scope* scope = new Scope(cur_offset);
@@ -94,11 +114,13 @@ void SymbolTable::exitScope(){
     Scope* scope = tables_stack->back();
     for (ScopeRow* row : *(scope->scope_st)){
         output::printID(row->name, row->offset, row->type);
-        cur_offset--;
+        row->offset--;
     }
     tables_stack->pop_back();
 }
 
+
+//TODO: type checking 
 void SymbolTable::insert(Node* type, Node* name) {
     string var_type = ((Token*)type)->token;
     string var_name = ((Token*)name)->token;
@@ -125,7 +147,7 @@ void SymbolTable::insertFunction(Node* name, Node* ret_type, Node* args){
     }
 
     string function_type = output::makeFunctionType(func_ret_type, args_types);
-    Scope* global_scope = tables_stack->back();
+    Scope* global_scope = tables_stack->front();
     global_scope->addFunction(func_name, function_type);
 
         if(args_types.size() > 0){
@@ -145,11 +167,34 @@ bool SymbolTable::isWhileScope(){
     return false;
 }
 
-bool SymbolTable::isIdentifierDelared(string id){
+bool SymbolTable::isIdentifierDeclared(string id){
     for(int i=tables_stack->size() - 1; i >= 0; i--){
         Scope* current_scope = (*tables_stack)[i];
         if(current_scope->isIdentifierInScope(id))
             return true;
     }
     return false;
+}
+
+string SymbolTable::getType(Node* id1, bool is_function, bool ret){
+    string id = ((Token*)id1)->token;
+    Scope* current_scope = nullptr;
+    if(is_function){
+        current_scope = tables_stack->front();
+    }else{
+        current_scope = tables_stack->back();
+    }
+    string type = current_scope->getType(id);
+
+    if(!type.empty()){
+        if(is_function){
+            if(ret){
+                type = SymbolTable::getRetType(type);
+            }else{
+                type = SymbolTable::getArgsTypes(type);
+            }
+        }
+        return type;
+    }
+    return {}; // empty string
 }

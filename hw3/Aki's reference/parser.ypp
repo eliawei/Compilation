@@ -1,0 +1,214 @@
+%{
+    #define YYINITDEPTH 5000
+	#include "parser.hpp"
+	#include "hw3_output.hpp"
+	#include "symbol_table.hpp"
+	#include <iostream>
+	#include <stdlib.h>
+
+	using namespace std;
+	using namespace output;
+
+	int yyerror(const char * message);
+	int yylex();
+    extern int yylineno;
+
+    symtable* symbol_table;
+
+    void validateBool(Expression* expression, int lineNumber);
+
+    void validateBool(Expression* expression1, Expression* expression2, int lineNumber);
+
+    void validateAssign(Token* type, Expression* value, int lineNumber);
+
+    void validateInt(Expression* expression1, Expression* expression2, int lineNumber);
+
+    void validateByte(Token* number, int lineNumber);
+%}
+
+%token TRUE FALSE SC COMMA ID NUM STRING
+%token B
+%right ASSIGN
+%left OR
+%left AND
+%left EQ_RELOP
+%nonassoc OTHER_RELOP
+%left ADD_BINOP
+%left MUL_BINOP
+%right NOT
+%left LPAREN RPAREN LBRACE RBRACE
+%nonassoc VOID INT BYTE BOOL
+%nonassoc ELSE
+%nonassoc BREAK
+%nonassoc CONTINUE
+%nonassoc WHILE
+%nonassoc RETURN
+%nonassoc IF
+%%
+
+Program:		Funcs {$$ = $1;}
+;
+
+Funcs:			{$$ = nullptr;}
+				|FuncDecl Funcs{$$ = new Funcs($1, $2);}
+;
+
+FuncDecl:		RetType ID LPAREN Formals RPAREN LBRACE {symbol_table->validateNotDeclared(static_cast<Token*>($2), yylineno);
+														 symbol_table->addFunction(static_cast<Token*>($2), static_cast<FormalList*>($4), static_cast<Token*>($1));}
+					Statements RBRACE
+				{$$ = new RecType($1, $2, $4, $6);
+				 symbol_table->removeScope();}
+;
+
+RetType:		Type {$$ = $1;}
+				|VOID {$$ = $1;}
+;
+
+Formals:		{$$ = new FormalList(nullptr);}
+				|FormalsList {$$ = $1;}
+;
+
+FormalsList:	FormalDecl {$$ = new FormalList(static_cast<Var*>($1));}
+    			|FormalDecl COMMA FormalsList {$$ = new FormalList(static_cast<Var*>($1), static_cast<FormalList*>($3)); symbol_table->validateParamList(static_cast<Var*>($1), static_cast<FormalList*>($3), yylineno);}
+;
+
+FormalDecl:		Type ID {$$ = new Var(static_cast<Token*>($1), static_cast<Token*>($2));}
+;
+
+Statements:		Statement {$$ = new Statements($1);}
+				|Statements Statement {$$ = new Statements($1, $2);}
+;
+
+Statement:		LBRACE {symbol_table->addScope(false); } Statements RBRACE {$$ = $2; symbol_table->removeScope();}
+				|Type ID SC {$$ = new Var((Token*)$1, (Token*)$2);
+							 symbol_table->validateNotDeclared(static_cast<Token*>($2), yylineno);
+							 symbol_table->addRecord((Var*)$$);}
+				|Type ID ASSIGN Exp SC {$$ = new Var((Token*)$1, (Token*)$2, (Token*)$4);
+										symbol_table->validateNotDeclared(static_cast<Token*>($2), yylineno);
+				                        validateAssign(static_cast<Token*>($1), static_cast<Expression*>($4), yylineno);
+										symbol_table->addRecord((Var*)$$);}
+				|ID ASSIGN Exp SC {$$ = new Assign($1, $3);
+								   symbol_table->validateDeclared(static_cast<Token*>($1), yylineno, false);
+								   string type = symbol_table->getType(static_cast<Token*>($1), yylineno, false);
+								   Token* typeToken = new Token(type);
+								   validateAssign(typeToken, static_cast<Expression*>($3), yylineno);}
+				|Call SC {$$ = $1;}
+				|RETURN SC {symbol_table->validateReturnType(nullptr, yylineno); $$ = new Return();}
+				|RETURN Exp SC {symbol_table->validateReturnType(static_cast<Expression*>($2), yylineno); $$ = new Return($2);}
+				|IF LPAREN Exp RPAREN M1 Statement {$$ = new If($3, $5); symbol_table->removeScope();}
+				|IF LPAREN Exp RPAREN M1 Statement ELSE {symbol_table->removeScope(); symbol_table->addScope(false);} Statement {$$ = new If($3, $5, $7); symbol_table->removeScope();}
+				|WHILE LPAREN Exp RPAREN M2 Statement {symbol_table->removeScope(); $$ = new While($3, $5);}
+				|WHILE LPAREN Exp RPAREN M2 Statement ELSE {symbol_table->removeScope(); symbol_table->addScope(false);} Statement {$$ = new While($3, $5, $7); symbol_table->removeScope();}
+				|BREAK SC {if(!symbol_table->isWhile()){errorUnexpectedBreak(yylineno); exit(1);}
+				           $$ = $1;}
+				|CONTINUE SC {if(!symbol_table->isWhile()){errorUnexpectedContinue(yylineno); exit(1);}
+                              $$ = $1;}
+;
+
+M1: 			{symbol_table->addScope(false);}
+;
+M2: 			{symbol_table->addScope(true);}
+;
+
+Call:			ID LPAREN ExpList RPAREN {string type = symbol_table->getType(static_cast<Token*>($1), yylineno, true);
+                                          symbol_table->validateDeclared(static_cast<Token*>($1), yylineno, true);
+                                          symbol_table->validateFuncArguments(static_cast<Token*>($1), static_cast<ExpList*>($3), yylineno);
+                                          $$ = new Call(static_cast<Token*>($1), static_cast<ExpList*>($3), type);}
+				|ID LPAREN RPAREN {string type = symbol_table->getType(static_cast<Token*>($1), yylineno, true);
+				                   symbol_table->validateDeclared(static_cast<Token*>($1), yylineno, true);
+				                   symbol_table->validateFuncArguments(static_cast<Token*>($1), nullptr, yylineno);
+				                   $$ = new Call(static_cast<Token*>($1), type);}
+;
+
+ExpList:		Exp {$$ = new ExpList(static_cast<Expression*>($1));}
+				|Exp COMMA ExpList {$$ = new ExpList(static_cast<ExpList*>($3), static_cast<Expression*>($1));}
+;
+
+Type:			INT {$$ = $1;}
+				|BYTE {$$ = $1;}
+				|BOOL {$$ = $1;}
+;
+
+Exp:			LPAREN Exp RPAREN {$$ = $2;}
+				|Exp MUL_BINOP Exp {validateInt(static_cast<Expression*>($1), static_cast<Expression*>($3), yylineno);
+				                    $$ = new Binop(static_cast<Expression*>($1),
+				                                   static_cast<Token*>($2),
+				                                   static_cast<Expression*>($3));}
+				|Exp ADD_BINOP Exp {validateInt(static_cast<Expression*>($1), static_cast<Expression*>($3), yylineno);
+				                    $$ = new Binop(static_cast<Expression*>($1),
+				                                   static_cast<Token*>($2),
+				                                   static_cast<Expression*>($3));}
+				|ID {$$ = new Expression(symbol_table->getType(static_cast<Token*>($1), yylineno, false));
+				     symbol_table->validateDeclared(static_cast<Token*>($1), yylineno, false);}
+				|Call {$$ = $1;}
+				|NUM {$$ = new Num(static_cast<Token*>($1));}
+				|NUM B {validateByte(static_cast<Token*>($1), yylineno);
+				        $$ = new Bnum(static_cast<Num*>($1));}
+				|STRING {$$ = new StringExp(static_cast<Token*>($1));}
+				|TRUE {$$ = new Bool(static_cast<Token*>($1));}
+				|FALSE {$$ = new Bool(static_cast<Token*>($1));}
+				|NOT Exp {validateBool(static_cast<Expression*>($2), yylineno);
+				          $$ = new Not(static_cast<Expression*>($1));}
+				|Exp AND Exp {validateBool(static_cast<Expression*>($1), static_cast<Expression*>($3), yylineno);
+				              $$ = new And(static_cast<Expression*>($1), static_cast<Expression*>($3));}
+				|Exp OR Exp {validateBool(static_cast<Expression*>($1), static_cast<Expression*>($3), yylineno);
+				             $$ = new Or(static_cast<Expression*>($1), static_cast<Expression*>($3));}
+				|Exp OTHER_RELOP Exp {validateInt(static_cast<Expression*>($1), static_cast<Expression*>($3), yylineno);
+				                      $$ = new Relop(static_cast<Expression*>($1), static_cast<Token*>($2), static_cast<Expression*>($3));}
+				|Exp EQ_RELOP Exp {validateInt(static_cast<Expression*>($1), static_cast<Expression*>($3), yylineno);
+				                   $$ = new Relop(static_cast<Expression*>($1), static_cast<Token*>($2), static_cast<Expression*>($3));}
+;
+
+%%
+
+int main()
+{
+	symbol_table = new symtable();
+	yyparse();
+    symbol_table->validateMain();
+    symbol_table->removeScope();
+}
+
+int yyerror(const char * message)
+{
+	errorSyn(yylineno);
+	exit(1);
+	return 0;
+}
+
+void validateBool(Expression* expression, int lineNumber){
+    if(expression->type.compare("BOOL") != 0){
+        output::errorMismatch(lineNumber);
+        exit(1);
+    }
+}
+
+void validateBool(Expression* expression1, Expression* expression2, int lineNumber){
+    if(expression1->type.compare("BOOL") != 0 || expression2->type.compare("BOOL") != 0){
+        output::errorMismatch(lineNumber);
+        exit(1);
+    }
+}
+
+void validateAssign(Token* type, Expression* value, int lineNumber){
+    if(type->text.compare(value->type) != 0 && (type->text.compare("INT") != 0 || value->type.compare("BYTE") != 0)){
+        output::errorMismatch(lineNumber);
+        exit(1);
+    }
+}
+
+void validateInt(Expression* expression1, Expression* expression2, int lineNumber){
+    if((expression1->type.compare("INT") != 0 && expression1->type.compare("BYTE") != 0)
+        || (expression2->type.compare("INT") != 0 && expression2->type.compare("BYTE") != 0)){
+        output::errorMismatch(lineNumber);
+        exit(1);
+    }
+}
+
+void validateByte(Token* number, int lineNumber){
+    int value = stoul(number->text);
+    if(value > 255){
+        output::errorByteTooLarge(lineNumber, number->text);
+        exit(1);
+    }
+}
