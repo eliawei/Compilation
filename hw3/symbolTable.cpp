@@ -4,12 +4,23 @@
 using namespace std;
 
 /*------------------------------------------ScopeRow------------------------------------*/
-ScopeRow::ScopeRow(string name, string type, int offset) : name(name), type(type), offset(offset){
+ScopeRow::ScopeRow(string name, string type, int offset) : name(name), type(type), offset(offset), is_function(false){
 }
 
-ScopeRow::ScopeRow(string name, string type) : name(name), type(type), offset(0){
+ScopeRow::ScopeRow(string name, string type, string ret_type, vector<string>& args_types) : name(name), type(type), ret_type(ret_type), offset(0), is_function(true){
+    this->args_types = new vector<string>();
+    *this->args_types = args_types;
 }
-
+ScopeRow::~ScopeRow(){
+    if(this->args_types){
+        delete args_types;
+    }
+}
+string ScopeRow::getType(string id){
+    if(this->name == id && this->is_function) return this->ret_type;
+    if(this->name == id && ! this->is_function) return this->type;
+    return {}; // empty string 
+}
 
 
 
@@ -19,6 +30,11 @@ Scope::Scope(int offset) {
     scope_st = new vector<ScopeRow*>();
     cur_offset = offset;
     is_while = false;
+}
+
+Scope::~Scope(){
+    scope_st->clear();
+    delete scope_st;
 }
 
 void Scope::addRow(string name, string type){
@@ -32,8 +48,8 @@ void Scope::addRow(string name, string type, int offset) {
     scope_st->push_back(scope_row);
 }
 
-void Scope::addFunction(string name, string type) {
-    ScopeRow* scope_row = new ScopeRow(name, type);
+void Scope::addFunction(string name, string type, string ret_type, vector<string>& args_types) {
+    ScopeRow* scope_row = new ScopeRow(name, type, ret_type, args_types);
     scope_st->push_back(scope_row);
 }
 
@@ -46,7 +62,22 @@ bool Scope::isIdentifierInScope(string id){
     return false;
 }
 
+string Scope::getType(string id){
+    for(int i = 0; i < scope_st->size(); i++){
+        ScopeRow* current_row = (*scope_st)[i];
+        string type = current_row->getType(id);
+        if(!type.empty()) return type;
+    }
+    return {};// empty string 
+}
 
+vector<string>* Scope::getFuncArgsTypes(string id){
+    for(int i = 0; i < scope_st->size(); i++){
+        ScopeRow* current_row = (*scope_st)[i];
+        if(current_row->name == id) return current_row->args_types;
+    }
+    return nullptr;
+}
 
 
 
@@ -61,16 +92,20 @@ SymbolTable::SymbolTable(){
     string ret_type = "VOID";
     vector<string> args_types {"STRING"};
     string function_type = output::makeFunctionType(ret_type, args_types);
-    global_scope->addFunction(func_name, function_type);
+    global_scope->addFunction(func_name, function_type, ret_type, args_types);
 
     //adding printi
     func_name = "printi";
     args_types = {"INT"};
     function_type = output::makeFunctionType(ret_type, args_types);
-    global_scope->addFunction(func_name, function_type);
+    global_scope->addFunction(func_name, function_type, ret_type, args_types);
 
     tables_stack->push_back(global_scope);
 
+}
+SymbolTable::~SymbolTable(){
+    tables_stack->clear();
+    delete tables_stack;
 }
 
 void SymbolTable::enterScope(bool is_while) {
@@ -94,11 +129,16 @@ void SymbolTable::exitScope(){
     Scope* scope = tables_stack->back();
     for (ScopeRow* row : *(scope->scope_st)){
         output::printID(row->name, row->offset, row->type);
-        cur_offset--;
+        if(row->offset>=0){
+            this->cur_offset--;
+        }
     }
+    delete scope;
     tables_stack->pop_back();
 }
 
+
+//TODO: type checking 
 void SymbolTable::insert(Node* type, Node* name) {
     string var_type = ((Token*)type)->token;
     string var_name = ((Token*)name)->token;
@@ -125,8 +165,8 @@ void SymbolTable::insertFunction(Node* name, Node* ret_type, Node* args){
     }
 
     string function_type = output::makeFunctionType(func_ret_type, args_types);
-    Scope* global_scope = tables_stack->back();
-    global_scope->addFunction(func_name, function_type);
+    Scope* global_scope = tables_stack->front();
+    global_scope->addFunction(func_name, function_type, func_ret_type, args_types);
 
         if(args_types.size() > 0){
         enterFunctionScope(args_types, args_names);
@@ -145,11 +185,37 @@ bool SymbolTable::isWhileScope(){
     return false;
 }
 
-bool SymbolTable::isIdentifierDelared(string id){
+bool SymbolTable::isIdentifierDeclared(string id){
     for(int i=tables_stack->size() - 1; i >= 0; i--){
         Scope* current_scope = (*tables_stack)[i];
         if(current_scope->isIdentifierInScope(id))
             return true;
     }
     return false;
+}
+
+string SymbolTable::getType(Node* id1, bool is_function){
+    string id = ((Token*)id1)->token;
+    Scope* current_scope = nullptr;
+    if(is_function){
+        current_scope = tables_stack->front();
+        string type = current_scope->getType(id);
+        if(!type.empty()){
+            return type;
+        }
+    }else{
+        for(int i=tables_stack->size() - 1; i > 0; i--){
+            Scope* current_scope = (*tables_stack)[i];
+            string type = current_scope->getType(id);
+            if(!type.empty()){
+                return type;
+            }
+        }
+    }    
+    return {}; // empty string
+}
+vector<string>* SymbolTable::getFuncArgs(Node* id1){
+    string id = ((Token*)id1)->token;
+    Scope* current_scope = tables_stack->front();
+    return current_scope->getFuncArgsTypes(id);
 }

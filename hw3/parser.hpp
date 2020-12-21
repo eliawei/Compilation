@@ -20,11 +20,18 @@ struct Token : public Node{
     }
 };
 
+struct Expression : public Node{
+    string type;
+
+    Expression(): type(""){}
+
+    Expression(string type): type(type){}
+};
 struct Funcs : public Node{
     Node* func;
     Node* next;
 
-    Funcs() : func(NULL), next(NULL) {}
+    Funcs() : func(nullptr), next(nullptr) {}
     Funcs(Node* func, Node* next) : func(func), next(next) {}
 };
 
@@ -44,8 +51,8 @@ struct FormalsList : public Node{
     Node* value;
     Node* next;
 
-    FormalsList() : value(NULL), next(NULL) {}
-    FormalsList(Node* value) : value(value), next(NULL) {}
+    FormalsList() : value(nullptr), next(nullptr) {}
+    FormalsList(Node* value) : value(value), next(nullptr) {}
     FormalsList(Node* value, Node* next) : value(value), next(next) {}
 };
 
@@ -53,17 +60,18 @@ struct Statements : public Node{
     Node* value;
     Node* next;
 
-    Statements(Node* value) : value(value), next(NULL) {}
+    Statements(Node* value) : value(value), next(nullptr) {}
     Statements(Node* value, Node* next) : value(value), next(next) {}
 };
 
-struct Declaration : public Node{
-    Node* type;
-    Node* var_name;
-    Node* value;
 
-    Declaration(Node* type, Node* var_name) : type(type), var_name(var_name), value(NULL) {}
-    Declaration(Node* type, Node* var_name, Node* value) : type(type), var_name(var_name), value(value) {}
+struct Declaration : public Node{
+    Token* type;
+    Token* var_name;
+    Token* value;
+
+    Declaration(Token* type, Token* var_name) : type(type), var_name(var_name), value(nullptr) {}
+    Declaration(Token* type, Token* var_name, Token* value) : type(type), var_name(var_name), value(value) {}
 };
 
 struct Assignment : public Node{
@@ -73,11 +81,13 @@ struct Assignment : public Node{
     Assignment(Node* var_name, Node* value) : var_name(var_name), value(value) {}
 };
 
-struct Return : public Node{
-    Node* arg;
+struct Return : public Expression{
+    Expression* arg;
 
-    Return() : arg(NULL) {}
-    Return(Node* arg) : arg(arg) {}
+    Return() : arg(nullptr) {}
+    Return(Expression* arg) : arg(arg) {
+        type= arg->type;
+    }
 };
 
 struct If : public Node{
@@ -85,7 +95,7 @@ struct If : public Node{
     Node* to_do;
     Node* else_do;
 
-    If(Node* condition, Node* to_do) : condition(condition), to_do(to_do), else_do(NULL) {}
+    If(Node* condition, Node* to_do) : condition(condition), to_do(to_do), else_do(nullptr) {}
     If(Node* condition, Node* to_do, Node* else_do) : condition(condition), to_do(to_do), else_do(else_do) {}
 };
 
@@ -96,21 +106,26 @@ struct While : public Node{
     While(Node* condition, Node* to_do) : condition(condition), to_do(to_do) {}
 };
 
-struct Call : public Node{
-    Node* func_name;
-    Node* args;
-
-    Call(Node* func_name) : func_name(func_name), args(NULL) {}
-    Call(Node* func_name, Node* args) : func_name(func_name), args(args) {}
-};
-
 struct ExpList : public Node{
-    Node* value;
-    Node* next;
+    ExpList* next;
+    Expression* value;
 
-    ExpList(Node* value) : value(value), next(NULL) {}
-    ExpList(Node* value, Node* next) : value(value), next(next) {}
+    ExpList(Expression* value) : value(value), next(nullptr) {}
+    ExpList(Expression* value, ExpList* next) : value(value), next(next) {}
 };
+struct Call : public Expression{
+    Token* func_id;
+    ExpList* exp_args;
+
+    Call(Token* func_id, string ret_type) : func_id(func_id), exp_args(nullptr) {
+        type = ret_type;
+    }
+    Call(Token* func_id, ExpList* exp_args, string ret_type) : func_id(func_id), exp_args(exp_args) {
+        type = ret_type;
+    }
+};
+
+
 
 struct Set : public Node{
     Node* from_num;
@@ -119,46 +134,84 @@ struct Set : public Node{
     Set(Node* from_num, Node* to_num) : from_num(from_num), to_num(to_num) {}
 };
 
-struct Binop : public Node{
-    Node* exp1;
-    Node* exp2;
-    Node* op;
+struct Binop : public Expression{
+    Expression* exp1;
+    Expression* exp2;
+    Token* op;
 
-    Binop(Node* exp1, Node* op, Node* exp2) : exp1(exp1), op(op), exp2(exp2) {}
+    Binop(Expression* exp1, Token* op, Expression* exp2) : exp1(exp1), op(op), exp2(exp2) {
+        if(exp1->type == "INT" || exp2->type == "INT"){
+            type = "INT";
+        }else{
+            type = "BYTE";
+        }
+    }
 };
 
-struct Relop : public Node{
-    Node* exp1;
-    Node* exp2;
-    Node* op;
+struct Relop : public Expression{
+    Expression* exp1;
+    Expression* exp2;
+    Token* op;
 
-    Relop(Node* exp1, Node* op, Node* exp2) : exp1(exp1), op(op), exp2(exp2) {}
+    Relop(Expression* exp1, Token* op, Expression* exp2) : exp1(exp1), op(op), exp2(exp2) {
+        type = "BOOL";
+    }
 };
 
-struct NumB : public Node{
-    Node* num;
 
-    NumB(Node* num) : num(num) {}
+struct Num : public Expression{
+    Token* num;
+
+    Num(Token* num_t) : num(num_t) {
+        type = "INT";
+    }
+};
+struct NumB : public Expression{
+    Num* num;
+
+    NumB(Num* num) : num(num) {
+        type = "BYTE";
+    }
+};
+struct Bool : public Expression{
+    Expression* val;
+
+    Bool(Expression* val) : val(val) {
+        type = "BOOL";
+    }
 };
 
-struct Not : public Node{
-    Node* exp;
+struct Not : public Expression{
+    Expression* exp;
 
-    Not(Node* exp) : exp(exp){}
+    Not(Expression* exp) : exp(exp){
+        type = exp->type;
+    }
 };
 
-struct And : public Node{
-    Node* exp1;
-    Node* exp2;
+struct And : public Expression{
+    Expression* exp1;
+    Expression* exp2;
 
-    And(Node* exp1, Node* exp2) : exp1(exp1), exp2(exp2) {}
+    And(Expression* exp1, Expression* exp2) : exp1(exp1), exp2(exp2){
+        type = "BOOL";
+    }
+};
+struct StringExp : public Expression{
+    string str;
+
+    StringExp(Token* lex) : str(lex->token){
+        type = "STRING";
+    }
 };
 
-struct Or : public Node{
-    Node* exp1;
-    Node* exp2;
+struct Or : public Expression{
+    Expression* exp1;
+    Expression* exp2;
 
-    Or(Node* exp1, Node* exp2) : exp1(exp1), exp2(exp2) {}
+    Or(Expression* exp1, Expression* exp2) : exp1(exp1), exp2(exp2) {
+        type = "BOOL";
+    }
 };
 
 #define YYSTYPE Node*
