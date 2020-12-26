@@ -1,0 +1,10 @@
+// cast set to int
+int foo(int a) {
+  set[0..10] set1;
+  return (int)set1 + a;
+}
+
+void main() {
+    set[5..6] myset1;
+    int a = foo((int)(myset1 + 100));
+}

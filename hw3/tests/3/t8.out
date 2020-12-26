@@ -1,0 +1,11 @@
+---end scope---
+a INT -1
+set1 SET 0
+---end scope---
+myset1 SET 0
+a INT 1
+---end scope---
+print (STRING)->VOID 0
+printi (INT)->VOID 0
+foo (INT)->INT 0
+main ()->VOID 0

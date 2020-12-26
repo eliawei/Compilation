@@ -1,0 +1,22 @@
+// check +/- operands for set
+void main() {
+    	int x = 5;
+    	byte y = 10b;
+	bool z;
+
+  set[0..255] myset1;
+	// - operand
+    	set[0..255] myset2 = myset1 - x;
+	myset2 = x - myset1;
+	myset2 = myset1 - y;
+	myset2 = y - myset1;
+	z = x in myset2;
+
+	// + operand
+	myset2 = myset1 + x;
+	myset2 = x + myset1;
+	myset2 = myset1 + y;
+	myset2 = y + myset1;
+
+  z = x in myset2;
+}

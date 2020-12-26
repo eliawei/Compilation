@@ -1,0 +1,6 @@
+// illegal casting of set
+void main() {
+    set[5..260] myset1;
+    int x = (byte)(5 + myset1);
+    printi(x + 10);
+}

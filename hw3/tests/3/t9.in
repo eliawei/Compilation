@@ -1,0 +1,10 @@
+// illegal casting
+
+void main() {
+    set[5..6] myset1;
+    set[7..10] myset2 = myset1;
+    if ((int)myset1 == (int)myset2)
+      print("OK");
+    printi((int)myset1);
+    printi((int)5 + myset1);
+}

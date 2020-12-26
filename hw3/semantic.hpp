@@ -16,22 +16,20 @@ namespace semantic{
         return false;
     }
     // func_args = "a,b,c", given_args = (value ,next)
-    bool FuncsArgsTypesValid(string func_args, ExpList* given_args){
-        if(!given_args){
+    bool FuncsArgsTypesValid(string id, vector<string>* func_args, ExpList* given_args){
+        if(!given_args || !func_args){
             return false;
         }
         ExpList* curr = given_args;
-
-        string s = func_args;
-        string delimiter = ",";
-        size_t pos = 0;
-        string type;
-        while ((pos = s.find(delimiter)) != string::npos && curr) {
-            type = s.substr(0, pos);
-            if(!(type.compare(curr->value->type) == 0 || (type == "INT" && curr->value->type == "BYTE"))) return false;
-            s.erase(0, pos + delimiter.length());
+        for (int i = 0; i < func_args->size(); i++)
+        {
+            if(!curr || !curr->value){
+                return false;
+            }
+            if(!(func_args->at(i).compare(curr->value->type) == 0 || ((func_args->at(i)) == "INT" && (curr->value->type) == "BYTE"))) return false;
             curr = curr->next;
         }
+        if(curr && curr->value) return false; // if anything left in given args list so too many args were passed.
         return true;
     }
     void errorPrototypeMismatchAux(int lineno, Node* id1, Node* argTypes){
@@ -40,7 +38,6 @@ namespace semantic{
         vector<string>* arg_types = new vector<string>();
         while(args){
             arg_types->push_back(args->value->type); // here memory error
-            cout<<"done"<<endl;
             args = args->next;
         }    
         output::errorPrototypeMismatch(lineno,id,*arg_types);

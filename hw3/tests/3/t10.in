@@ -1,0 +1,14 @@
+// check cast and in precedence
+
+int foo() {
+  return 10b;
+}
+
+void main() {
+    set[5..6] myset1;
+    if (foo() in (myset1 - 10 - 4))
+      print("success");
+    if (5 > (int)myset1 + 10)
+      print("OK");
+    bool x = 5 + (int)myset1 in myset1;
+}

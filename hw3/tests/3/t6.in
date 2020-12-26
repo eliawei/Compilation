@@ -1,0 +1,4 @@
+// illegal range of set
+void main() {
+    set[5..4] myset1;
+}

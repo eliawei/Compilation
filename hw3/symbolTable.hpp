@@ -8,12 +8,19 @@ class ScopeRow{
         string name;
         string type;
         int offset;
-
-        ScopeRow(string name, string type, int offset);
-        ScopeRow(string name, string type);
+        bool is_function;
+        ScopeRow(string name, string type, int offset, bool is_function=false);
         string getType(string id);
 
 
+};
+
+class FunctionRow : public ScopeRow{
+    public:
+        vector<string>* args_types;
+        string ret_type;
+        FunctionRow(string name, string type, string ret_type, vector<string>& args_types);
+        ~FunctionRow();
 };
 
 
@@ -24,16 +31,18 @@ class Scope{
         //int start_offset;
         int cur_offset;
         bool is_while;
+        bool is_function;
+        FunctionRow* func;
 
         
         Scope(int offset);
         ~Scope();
         void addRow(string name, string type);
         void addRow(string name, string type, int offset); //used for function args - negative values
-        void addFunction(string name, string type);
-        bool isIdentifierInScope(string id);
+        void addFunction(string name, string type, string ret_type, vector<string>& args_types);
+        bool isIdentifierInScope(string id, bool is_new_dec);
         string getType(string id);
-        string getFuncArgsTypes(string id);
+        vector<string>* getFuncArgsTypes(string id);
 };
 
 
@@ -64,6 +73,18 @@ class SymbolTable{
     void insert(Node* type, Node* name);
     void insertFunction(Node* name, Node* ret_type, Node* args);
     bool isWhileScope();
-    bool isIdentifierDeclared(string id);
-    string getType(Node* id1, bool is_function=false, bool ret = true);
+    bool isIdentifierDeclared(string id, bool is_new_dec=false);
+    string getType(Node* id1, bool is_function=false);
+    vector<string>* getFuncArgs(Node* id1);
+    void validateRetType(Node* exp, int line_num);
+    bool validateNumeric(Node* exp1, Node* exp2);
+    bool validateBoolean(Node* exp1, Node* exp2);
+    bool validateBoolean(Node* exp);
+    bool validateSet(Node* exp1, Node* exp2);
+    bool validateRelopInTypes(Node* exp1, Node* exp2);
+    bool validateByteLen(Node* num);
+    void validateSetRange(Node* num1, Node* num2, int line_num);
+    void validateMainFunc();
+    void validateFunctionCall(Node* fun_name, int line_num);
+    bool validateConversion(Node* type, Node* exp);
 };

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <iostream>
 using namespace std;
 
 struct Node{
@@ -31,7 +32,7 @@ struct Funcs : public Node{
     Node* func;
     Node* next;
 
-    Funcs() : func(NULL), next(NULL) {}
+    Funcs() : func(nullptr), next(nullptr) {}
     Funcs(Node* func, Node* next) : func(func), next(next) {}
 };
 
@@ -51,8 +52,8 @@ struct FormalsList : public Node{
     Node* value;
     Node* next;
 
-    FormalsList() : value(NULL), next(NULL) {}
-    FormalsList(Node* value) : value(value), next(NULL) {}
+    FormalsList() : value(nullptr), next(nullptr) {}
+    FormalsList(Node* value) : value(value), next(nullptr) {}
     FormalsList(Node* value, Node* next) : value(value), next(next) {}
 };
 
@@ -60,18 +61,18 @@ struct Statements : public Node{
     Node* value;
     Node* next;
 
-    Statements(Node* value) : value(value), next(NULL) {}
+    Statements(Node* value) : value(value), next(nullptr) {}
     Statements(Node* value, Node* next) : value(value), next(next) {}
 };
 
 
 struct Declaration : public Node{
-    Node* type;
-    Node* var_name;
-    Node* value;
+    Token* type;
+    Token* var_name;
+    Token* value;
 
-    Declaration(Node* type, Node* var_name) : type(type), var_name(var_name), value(NULL) {}
-    Declaration(Node* type, Node* var_name, Node* value) : type(type), var_name(var_name), value(value) {}
+    Declaration(Token* type, Token* var_name) : type(type), var_name(var_name), value(nullptr) {}
+    Declaration(Token* type, Token* var_name, Token* value) : type(type), var_name(var_name), value(value) {}
 };
 
 struct Assignment : public Node{
@@ -81,11 +82,13 @@ struct Assignment : public Node{
     Assignment(Node* var_name, Node* value) : var_name(var_name), value(value) {}
 };
 
-struct Return : public Node{
-    Node* arg;
+struct Return : public Expression{
+    Expression* arg;
 
-    Return() : arg(NULL) {}
-    Return(Node* arg) : arg(arg) {}
+    Return() : arg(nullptr) {}
+    Return(Expression* arg) : arg(arg) {
+        type= arg->type;
+    }
 };
 
 struct If : public Node{
@@ -93,7 +96,7 @@ struct If : public Node{
     Node* to_do;
     Node* else_do;
 
-    If(Node* condition, Node* to_do) : condition(condition), to_do(to_do), else_do(NULL) {}
+    If(Node* condition, Node* to_do) : condition(condition), to_do(to_do), else_do(nullptr) {}
     If(Node* condition, Node* to_do, Node* else_do) : condition(condition), to_do(to_do), else_do(else_do) {}
 };
 
@@ -132,65 +135,87 @@ struct Set : public Node{
     Set(Node* from_num, Node* to_num) : from_num(from_num), to_num(to_num) {}
 };
 
-struct Binop : public Node{
-    Node* exp1;
-    Node* exp2;
-    Node* op;
+struct Binop : public Expression{
+    Expression* exp1;
+    Expression* exp2;
+    Token* op;
 
-    Binop(Node* exp1, Node* op, Node* exp2) : exp1(exp1), op(op), exp2(exp2) {}
+    Binop(Expression* exp1, Token* op, Expression* exp2) : exp1(exp1), op(op), exp2(exp2) {
+        if( (exp1->type == "SET" && (exp2->type == "INT" || exp2->type == "BYTE")) || (exp2->type == "SET" && (exp1->type == "INT" || exp1->type == "BYTE")))
+            type = "SET";
+        else {
+            if(exp1->type == "INT" || exp2->type == "INT"){
+                type = "INT";
+            }else
+                type = "BYTE";
+            }
+    }
 };
 
-struct Relop : public Node{
-    Node* exp1;
-    Node* exp2;
-    Node* op;
+struct Relop : public Expression{
+    Expression* exp1;
+    Expression* exp2;
+    Token* op;
 
-    Relop(Node* exp1, Node* op, Node* exp2) : exp1(exp1), op(op), exp2(exp2) {}
+    Relop(Expression* exp1, Token* op, Expression* exp2) : exp1(exp1), op(op), exp2(exp2) {
+        type = "BOOL";
+    }
 };
 
 
 struct Num : public Expression{
-    Node* num;
+    Token* num;
 
-    Num(Node* num) : num(num) {
+    Num(Token* num_t) : num(num_t) {
         type = "INT";
     }
 };
 struct NumB : public Expression{
-    Node* num;
+    Num* num;
 
-    NumB(Node* num) : num(num) {
+    NumB(Num* num) : num(num) {
         type = "BYTE";
     }
 };
 struct Bool : public Expression{
-    Node* val;
+    Expression* val;
 
-    Bool(Node* val) : val(val) {
+    Bool(Expression* val) : val(val) {
         type = "BOOL";
     }
 };
 
-struct Not : public Node{
-    Node* exp;
+struct Not : public Expression{
+    Expression* exp;
 
-    Not(Node* exp) : exp(exp){}
+    Not(Expression* exp) : exp(exp){
+        type = exp->type;
+    }
 };
 
 struct And : public Expression{
-    Node* exp1;
-    Node* exp2;
+    Expression* exp1;
+    Expression* exp2;
 
-    And(Node* exp1, Node* exp2) : exp1(exp1), exp2(exp2){
+    And(Expression* exp1, Expression* exp2) : exp1(exp1), exp2(exp2){
         type = "BOOL";
     }
 };
+struct StringExp : public Expression{
+    string str;
 
-struct Or : public Node{
-    Node* exp1;
-    Node* exp2;
+    StringExp(Token* lex) : str(lex->token){
+        type = "STRING";
+    }
+};
 
-    Or(Node* exp1, Node* exp2) : exp1(exp1), exp2(exp2) {}
+struct Or : public Expression{
+    Expression* exp1;
+    Expression* exp2;
+
+    Or(Expression* exp1, Expression* exp2) : exp1(exp1), exp2(exp2) {
+        type = "BOOL";
+    }
 };
 
 #define YYSTYPE Node*

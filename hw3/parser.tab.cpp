@@ -74,6 +74,9 @@
 #include "symbolTable.hpp"
 #include "semantic.hpp"
 #include <iostream>
+#include <algorithm> // for copy
+#include <iterator> // for ostream_iterator
+#include <vector>
 using namespace std;
 using namespace output;
 SymbolTable* symbol_table;
@@ -81,7 +84,7 @@ int yylex();
 extern int yylineno;
 void yyerror(char const*);
 
-#line 85 "parser.tab.cpp"
+#line 88 "parser.tab.cpp"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -545,12 +548,12 @@ static const yytype_int8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    57,    57,    60,    63,    64,    67,    67,    71,    72,
-      75,    76,    79,    80,    83,    86,    87,    90,    90,    92,
-      93,    98,    99,   100,   101,   102,   103,   103,   105,   105,
-     107,   112,   119,   122,   128,   132,   133,   136,   137,   138,
-     139,   142,   143,   144,   145,   146,   147,   148,   149,   150,
-     151,   152,   153,   154,   155,   156,   157,   158
+       0,    60,    60,    63,    66,    67,    70,    70,    80,    81,
+      84,    85,    88,    89,    92,    95,    96,    99,    99,   101,
+     102,   111,   124,   125,   126,   127,   128,   128,   130,   130,
+     132,   137,   144,   147,   161,   169,   170,   173,   174,   175,
+     176,   179,   180,   181,   182,   183,   184,   185,   186,   187,
+     188,   189,   190,   191,   192,   193,   194,   195
 };
 #endif
 
@@ -1430,361 +1433,394 @@ yyreduce:
   switch (yyn)
     {
   case 2:
-#line 57 "parser.ypp"
+#line 60 "parser.ypp"
                 { yyval = yyvsp[-1]; symbol_table->exitScope();}
-#line 1436 "parser.tab.cpp"
+#line 1439 "parser.tab.cpp"
     break;
 
   case 3:
-#line 60 "parser.ypp"
+#line 63 "parser.ypp"
             { symbol_table = new SymbolTable(); }
-#line 1442 "parser.tab.cpp"
+#line 1445 "parser.tab.cpp"
     break;
 
   case 4:
-#line 63 "parser.ypp"
+#line 66 "parser.ypp"
                        { yyval = new Funcs(yyvsp[-1], yyvsp[0]); }
-#line 1448 "parser.tab.cpp"
+#line 1451 "parser.tab.cpp"
     break;
 
   case 5:
-#line 64 "parser.ypp"
+#line 67 "parser.ypp"
           { yyval = new Funcs(); }
-#line 1454 "parser.tab.cpp"
+#line 1457 "parser.tab.cpp"
     break;
 
   case 6:
-#line 67 "parser.ypp"
+#line 70 "parser.ypp"
                                          { symbol_table->insertFunction(yyvsp[-3], yyvsp[-4], yyvsp[-1]); }
-#line 1460 "parser.tab.cpp"
+#line 1463 "parser.tab.cpp"
     break;
 
   case 7:
-#line 68 "parser.ypp"
-                                 { symbol_table->exitScope(); }
-#line 1466 "parser.tab.cpp"
+#line 71 "parser.ypp"
+                                 {	
+								// if(!semantic::AssignValid((Token*)($1),(Expression*)($8))){
+								// 	output::errorMismatch(yylineno);
+								// 	exit(1);
+								// }
+								symbol_table->exitScope(); 
+							}
+#line 1475 "parser.tab.cpp"
     break;
 
   case 8:
-#line 71 "parser.ypp"
+#line 80 "parser.ypp"
              {yyval = yyvsp[0]; }
-#line 1472 "parser.tab.cpp"
+#line 1481 "parser.tab.cpp"
     break;
 
   case 9:
-#line 72 "parser.ypp"
+#line 81 "parser.ypp"
                {yyval = yyvsp[0]; }
-#line 1478 "parser.tab.cpp"
+#line 1487 "parser.tab.cpp"
     break;
 
   case 10:
-#line 75 "parser.ypp"
+#line 84 "parser.ypp"
                     {yyval = new FormalsList(); }
-#line 1484 "parser.tab.cpp"
+#line 1493 "parser.tab.cpp"
     break;
 
   case 11:
-#line 76 "parser.ypp"
+#line 85 "parser.ypp"
                       {yyval = yyvsp[0]; }
-#line 1490 "parser.tab.cpp"
+#line 1499 "parser.tab.cpp"
     break;
 
   case 12:
-#line 79 "parser.ypp"
+#line 88 "parser.ypp"
                    {yyval = new FormalsList(yyvsp[0]);}
-#line 1496 "parser.tab.cpp"
+#line 1505 "parser.tab.cpp"
     break;
 
   case 13:
-#line 80 "parser.ypp"
+#line 89 "parser.ypp"
                                        { yyval = new FormalsList(yyvsp[-2], yyvsp[0]); }
-#line 1502 "parser.tab.cpp"
+#line 1511 "parser.tab.cpp"
     break;
 
   case 14:
-#line 83 "parser.ypp"
-                { yyval = new Declaration(yyvsp[-1], yyvsp[0]); }
-#line 1508 "parser.tab.cpp"
+#line 92 "parser.ypp"
+                { yyval = new Declaration(((Token*)(yyvsp[-1])), ((Token*)(yyvsp[0]))); }
+#line 1517 "parser.tab.cpp"
     break;
 
   case 15:
-#line 86 "parser.ypp"
+#line 95 "parser.ypp"
                   { yyval = new Statements(yyvsp[0]); }
-#line 1514 "parser.tab.cpp"
+#line 1523 "parser.tab.cpp"
     break;
 
   case 16:
-#line 87 "parser.ypp"
+#line 96 "parser.ypp"
                                { yyval = new Statements(yyvsp[0], yyvsp[-1]); }
-#line 1520 "parser.tab.cpp"
+#line 1529 "parser.tab.cpp"
     break;
 
   case 17:
-#line 90 "parser.ypp"
+#line 99 "parser.ypp"
                { symbol_table->enterScope(); }
-#line 1526 "parser.tab.cpp"
+#line 1535 "parser.tab.cpp"
     break;
 
   case 18:
-#line 91 "parser.ypp"
+#line 100 "parser.ypp"
                                           {symbol_table->exitScope(); yyval = yyvsp[-2]; }
-#line 1532 "parser.tab.cpp"
+#line 1541 "parser.tab.cpp"
     break;
 
   case 19:
-#line 92 "parser.ypp"
-                     { symbol_table->insert(yyvsp[-2], yyvsp[-1]); yyval = new Declaration(yyvsp[-2], yyvsp[-1]); }
-#line 1538 "parser.tab.cpp"
+#line 101 "parser.ypp"
+                     { symbol_table->insert(yyvsp[-2], yyvsp[-1]); yyval = new Declaration(((Token*)(yyvsp[-2])), ((Token*)(yyvsp[-1]))); }
+#line 1547 "parser.tab.cpp"
     break;
 
   case 20:
-#line 93 "parser.ypp"
+#line 102 "parser.ypp"
                                 { 	if(!semantic::AssignValid((Token*)(yyvsp[-4]),(Expression*)(yyvsp[-1]))){
 								output::errorMismatch(yylineno);
 								exit(1);
-							}
-							symbol_table->insert(yyvsp[-4], yyvsp[-3]); yyval = new Declaration(yyvsp[-4], yyvsp[-3], yyvsp[-1]); }
-#line 1548 "parser.tab.cpp"
+								}
+								if(symbol_table->isIdentifierDeclared(((Token*)(yyvsp[-3]))->token)){
+									output::errorDef(yylineno,((Token*)(yyvsp[-3]))->token);
+									exit(1);
+								}
+							symbol_table->insert(yyvsp[-4], yyvsp[-3]); yyval = new Declaration(((Token*)(yyvsp[-4])), ((Token*)(yyvsp[-3])), ((Token*)(yyvsp[-1]))); }
+#line 1561 "parser.tab.cpp"
     break;
 
   case 21:
-#line 98 "parser.ypp"
-                           { yyval = new Assignment(yyvsp[-3], yyvsp[-1]); }
-#line 1554 "parser.tab.cpp"
+#line 111 "parser.ypp"
+                           { 	if(!symbol_table->isIdentifierDeclared(((Token*)(yyvsp[-3]))->token)){
+									output::errorUndef(yylineno,((Token*)(yyvsp[-2]))->token);
+									exit(1);
+							}
+							string id_type = symbol_table->getType(yyvsp[-3]);
+							Token* id_type_t = new Token(id_type);
+							if(!semantic::AssignValid(id_type_t,(Expression*)(yyvsp[-1]))){
+								output::errorMismatch(yylineno);
+								delete id_type_t;
+								exit(1);
+							}
+							delete id_type_t;
+							yyval = new Assignment(yyvsp[-3], yyvsp[-1]); }
+#line 1579 "parser.tab.cpp"
     break;
 
   case 22:
-#line 99 "parser.ypp"
+#line 124 "parser.ypp"
                   { yyval = yyvsp[-1]; }
-#line 1560 "parser.tab.cpp"
+#line 1585 "parser.tab.cpp"
     break;
 
   case 23:
-#line 100 "parser.ypp"
+#line 125 "parser.ypp"
                     { yyval = new Return(); }
-#line 1566 "parser.tab.cpp"
+#line 1591 "parser.tab.cpp"
     break;
 
   case 24:
-#line 101 "parser.ypp"
-                        { yyval = new Return(yyvsp[-2]); }
-#line 1572 "parser.tab.cpp"
+#line 126 "parser.ypp"
+                        { yyval = new Return((Expression*)(yyvsp[-2])); }
+#line 1597 "parser.tab.cpp"
     break;
 
   case 25:
-#line 102 "parser.ypp"
+#line 127 "parser.ypp"
                                              { symbol_table->exitScope(); yyval = new If(yyvsp[-3], yyvsp[-1]); }
-#line 1578 "parser.tab.cpp"
+#line 1603 "parser.tab.cpp"
     break;
 
   case 26:
-#line 103 "parser.ypp"
+#line 128 "parser.ypp"
                                                   { symbol_table->exitScope(); symbol_table->enterScope();}
-#line 1584 "parser.tab.cpp"
+#line 1609 "parser.tab.cpp"
     break;
 
   case 27:
-#line 104 "parser.ypp"
+#line 129 "parser.ypp"
                           { symbol_table->exitScope(); yyval = new If(yyvsp[-6], yyvsp[-4], yyvsp[-2]);}
-#line 1590 "parser.tab.cpp"
+#line 1615 "parser.tab.cpp"
     break;
 
   case 28:
-#line 105 "parser.ypp"
+#line 130 "parser.ypp"
                                   { symbol_table->enterScope(true); }
-#line 1596 "parser.tab.cpp"
+#line 1621 "parser.tab.cpp"
     break;
 
   case 29:
-#line 106 "parser.ypp"
+#line 131 "parser.ypp"
                            { symbol_table->exitScope(); yyval = new While(yyvsp[-3], yyvsp[-1]); }
-#line 1602 "parser.tab.cpp"
+#line 1627 "parser.tab.cpp"
     break;
 
   case 30:
-#line 107 "parser.ypp"
+#line 132 "parser.ypp"
                    { if(!symbol_table->isWhileScope()){
 					output::errorUnexpectedBreak(yylineno);
 					exit(1);
 				}
 				yyval = yyvsp[-1]; }
-#line 1612 "parser.tab.cpp"
+#line 1637 "parser.tab.cpp"
     break;
 
   case 31:
-#line 112 "parser.ypp"
+#line 137 "parser.ypp"
                       { if(!symbol_table->isWhileScope()){
 						output::errorUnexpectedContinue(yylineno);
 						exit(1);
 					}
 					yyval = yyvsp[-1]; }
-#line 1622 "parser.tab.cpp"
+#line 1647 "parser.tab.cpp"
     break;
 
   case 32:
-#line 119 "parser.ypp"
+#line 144 "parser.ypp"
                     { symbol_table->enterScope(); }
-#line 1628 "parser.tab.cpp"
+#line 1653 "parser.tab.cpp"
     break;
 
   case 33:
-#line 122 "parser.ypp"
-                                 { 	if(!semantic::FuncsArgsTypesValid(symbol_table->getType(yyvsp[-3], true, false),(ExpList*)(yyvsp[-1]))){
-									semantic::errorPrototypeMismatchAux(yylineno, yyvsp[-3], yyvsp[-1]);
-            						exit(1);
+#line 147 "parser.ypp"
+                                 { 	
+								if(!symbol_table->isIdentifierDeclared(((Token*)(yyvsp[-3]))->token)){
+									output::errorUndefFunc(yylineno, ((Token*)(yyvsp[-3]))->token);
+									exit(1);
+								}
+								vector<string>* expected_args = symbol_table->getFuncArgs(yyvsp[-3]);
+								if(!semantic::FuncsArgsTypesValid(((Token*)(yyvsp[-3]))->token, expected_args,(ExpList*)(yyvsp[-1]))){
+									output::errorPrototypeMismatch(yylineno, ((Token*)(yyvsp[-3]))->token, *expected_args);
+									exit(1);
 								}
 								string ret_type = symbol_table->getType(yyvsp[-3], true);
-								yyval = new Call((Token*)(yyvsp[-3]), (ExpList*)(yyvsp[-1]), ret_type); }
-#line 1639 "parser.tab.cpp"
+								yyval = new Call((Token*)(yyvsp[-3]), (ExpList*)(yyvsp[-1]), ret_type); 
+							}
+#line 1671 "parser.tab.cpp"
     break;
 
   case 34:
-#line 128 "parser.ypp"
-                           { 		string ret_type = symbol_table->getType(yyvsp[-2], true);
+#line 161 "parser.ypp"
+                           { 		if(!symbol_table->isIdentifierDeclared(((Token*)(yyvsp[-2]))->token)){
+									output::errorUndefFunc(yylineno, ((Token*)(yyvsp[-2]))->token);
+									exit(1);
+								}
+								string ret_type = symbol_table->getType(yyvsp[-2], true);
 								yyval = new Call((Token*)(yyvsp[-2]),ret_type); }
-#line 1646 "parser.tab.cpp"
-    break;
-
-  case 35:
-#line 132 "parser.ypp"
-            { yyval = new ExpList((Expression*)(yyvsp[0])); }
-#line 1652 "parser.tab.cpp"
-    break;
-
-  case 36:
-#line 133 "parser.ypp"
-                            { yyval = new ExpList((Expression*)(yyvsp[-2]), (ExpList*)(yyvsp[0])); }
-#line 1658 "parser.tab.cpp"
-    break;
-
-  case 37:
-#line 136 "parser.ypp"
-            { yyval = yyvsp[0]; }
-#line 1664 "parser.tab.cpp"
-    break;
-
-  case 38:
-#line 137 "parser.ypp"
-               { yyval = yyvsp[0]; }
-#line 1670 "parser.tab.cpp"
-    break;
-
-  case 39:
-#line 138 "parser.ypp"
-               { yyval = yyvsp[0]; }
-#line 1676 "parser.tab.cpp"
-    break;
-
-  case 40:
-#line 139 "parser.ypp"
-                                             { yyval = yyvsp[-5]; }
 #line 1682 "parser.tab.cpp"
     break;
 
-  case 41:
-#line 142 "parser.ypp"
-                          { yyval = yyvsp[-1]; }
+  case 35:
+#line 169 "parser.ypp"
+            { yyval = new ExpList((Expression*)(yyvsp[0])); }
 #line 1688 "parser.tab.cpp"
     break;
 
-  case 42:
-#line 143 "parser.ypp"
-                           { yyval = new Binop(yyvsp[-2], yyvsp[0], yyvsp[-1]); }
+  case 36:
+#line 170 "parser.ypp"
+                            { yyval = new ExpList((Expression*)(yyvsp[-2]), (ExpList*)(yyvsp[0])); }
 #line 1694 "parser.tab.cpp"
     break;
 
-  case 43:
-#line 144 "parser.ypp"
-                           { yyval = new Binop(yyvsp[-2], yyvsp[0], yyvsp[-1]); }
+  case 37:
+#line 173 "parser.ypp"
+            { yyval = yyvsp[0]; }
 #line 1700 "parser.tab.cpp"
     break;
 
-  case 44:
-#line 145 "parser.ypp"
-             { yyval = new Expression(symbol_table->getType(yyvsp[0])); }
+  case 38:
+#line 174 "parser.ypp"
+               { yyval = yyvsp[0]; }
 #line 1706 "parser.tab.cpp"
     break;
 
-  case 45:
-#line 146 "parser.ypp"
+  case 39:
+#line 175 "parser.ypp"
                { yyval = yyvsp[0]; }
 #line 1712 "parser.tab.cpp"
     break;
 
-  case 46:
-#line 147 "parser.ypp"
-              { yyval = new Num(yyvsp[0]); }
+  case 40:
+#line 176 "parser.ypp"
+                                             { yyval = yyvsp[-5]; }
 #line 1718 "parser.tab.cpp"
     break;
 
-  case 47:
-#line 148 "parser.ypp"
-                { yyval = new NumB(yyvsp[-1]); }
+  case 41:
+#line 179 "parser.ypp"
+                          { yyval = yyvsp[-1]; }
 #line 1724 "parser.tab.cpp"
     break;
 
-  case 48:
-#line 149 "parser.ypp"
-                 { yyval = yyvsp[0]; }
+  case 42:
+#line 180 "parser.ypp"
+                           { yyval = new Binop((Expression*)(yyvsp[-2]), (Token*)(yyvsp[-1]), (Expression*)(yyvsp[0])); }
 #line 1730 "parser.tab.cpp"
     break;
 
-  case 49:
-#line 150 "parser.ypp"
-               { yyval = new Bool(yyvsp[0]); }
+  case 43:
+#line 181 "parser.ypp"
+                           { yyval = new Binop((Expression*)(yyvsp[-2]), (Token*)(yyvsp[-1]), (Expression*)(yyvsp[0])); }
 #line 1736 "parser.tab.cpp"
     break;
 
-  case 50:
-#line 151 "parser.ypp"
-                { yyval = new Bool(yyvsp[0]); }
+  case 44:
+#line 182 "parser.ypp"
+             { yyval = new Expression(symbol_table->getType(yyvsp[0])); }
 #line 1742 "parser.tab.cpp"
     break;
 
-  case 51:
-#line 152 "parser.ypp"
-                  { yyval = new Not(yyvsp[0]); }
+  case 45:
+#line 183 "parser.ypp"
+               { yyval = yyvsp[0]; }
 #line 1748 "parser.tab.cpp"
     break;
 
-  case 52:
-#line 153 "parser.ypp"
-                      { yyval = new And(yyvsp[-2], yyvsp[0]); }
+  case 46:
+#line 184 "parser.ypp"
+              { yyval = new Num((Token*)(yyvsp[0])); }
 #line 1754 "parser.tab.cpp"
     break;
 
-  case 53:
-#line 154 "parser.ypp"
-                     { yyval = new Or(yyvsp[-2], yyvsp[0]); }
+  case 47:
+#line 185 "parser.ypp"
+                { yyval = new NumB((Num*)(yyvsp[-1])); }
 #line 1760 "parser.tab.cpp"
     break;
 
-  case 54:
-#line 155 "parser.ypp"
-                           { yyval = new Relop(yyvsp[-2], yyvsp[0], yyvsp[-1]); }
+  case 48:
+#line 186 "parser.ypp"
+                 { yyval = new StringExp((Token*)(yyvsp[0])); }
 #line 1766 "parser.tab.cpp"
     break;
 
-  case 55:
-#line 156 "parser.ypp"
-                             { yyval = new Relop(yyvsp[-2], yyvsp[0], yyvsp[-1]); }
+  case 49:
+#line 187 "parser.ypp"
+               { yyval = new Bool((Expression*)(yyvsp[0])); }
 #line 1772 "parser.tab.cpp"
     break;
 
-  case 56:
-#line 157 "parser.ypp"
-                           { yyval = new Relop(yyvsp[-2], yyvsp[0], yyvsp[-1]); }
+  case 50:
+#line 188 "parser.ypp"
+                { yyval = new Bool((Expression*)(yyvsp[0])); }
 #line 1778 "parser.tab.cpp"
     break;
 
-  case 57:
-#line 158 "parser.ypp"
-                                 { yyval = yyvsp[0]; }
+  case 51:
+#line 189 "parser.ypp"
+                  { yyval = new Not((Expression*)(yyvsp[0])); }
 #line 1784 "parser.tab.cpp"
     break;
 
+  case 52:
+#line 190 "parser.ypp"
+                      { yyval = new And((Expression*)(yyvsp[-2]), (Expression*)(yyvsp[0])); }
+#line 1790 "parser.tab.cpp"
+    break;
 
-#line 1788 "parser.tab.cpp"
+  case 53:
+#line 191 "parser.ypp"
+                     { yyval = new Or((Expression*)(yyvsp[-2]), (Expression*)(yyvsp[0])); }
+#line 1796 "parser.tab.cpp"
+    break;
+
+  case 54:
+#line 192 "parser.ypp"
+                           { yyval = new Relop((Expression*)(yyvsp[-2]), (Token*)(yyvsp[0]), (Expression*)(yyvsp[-1])); }
+#line 1802 "parser.tab.cpp"
+    break;
+
+  case 55:
+#line 193 "parser.ypp"
+                             { yyval = new Relop((Expression*)(yyvsp[-2]), (Token*)(yyvsp[0]), (Expression*)(yyvsp[-1])); }
+#line 1808 "parser.tab.cpp"
+    break;
+
+  case 56:
+#line 194 "parser.ypp"
+                           { yyval = new Relop((Expression*)(yyvsp[-2]), (Token*)(yyvsp[0]), (Expression*)(yyvsp[-1])); }
+#line 1814 "parser.tab.cpp"
+    break;
+
+  case 57:
+#line 195 "parser.ypp"
+                                 { yyval = yyvsp[0]; }
+#line 1820 "parser.tab.cpp"
+    break;
+
+
+#line 1824 "parser.tab.cpp"
 
       default: break;
     }
@@ -2016,7 +2052,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 160 "parser.ypp"
+#line 197 "parser.ypp"
 
 
 // C user routines

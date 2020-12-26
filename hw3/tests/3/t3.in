@@ -1,0 +1,7 @@
+// casting of set
+void main() {
+    set[5..260] myset1;
+    int x = (int)(5 + myset1);
+    x = (int)( myset1 + 4b);
+    printi(x + 10);
+}

@@ -1,0 +1,9 @@
+// check in relop
+void main() {
+    int x = 5;
+    byte y = 10b;
+    printi(x + 4);
+    set[5..260] myset1;
+    bool z = y in myset1;
+    z = x in myset1;
+}
