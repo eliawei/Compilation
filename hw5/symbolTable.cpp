@@ -104,7 +104,7 @@ SymbolTable::SymbolTable(){
     //adding printi
     func_name = "printi";
     args_types = {"INT"};
-    function_type = output::makeFunctionType(ret_type, args_types);
+    //function_type = output::makeFunctionType(ret_type, args_types);
     global_scope->addFunction(func_name, function_type, ret_type, args_types);
 
     tables_stack->push_back(global_scope);
@@ -135,10 +135,10 @@ void SymbolTable::enterFunctionScope(vector<string> types, vector<string> names)
 }
 
 void SymbolTable::exitScope(){
-    output::endScope();
+    //output::endScope();
     Scope* scope = tables_stack->back();
     for (ScopeRow* row : *(scope->scope_st)){
-        output::printID(row->name, row->offset, row->type);
+        //output::printID(row->name, row->offset, row->type);
         if(row->offset>=0){
             this->cur_offset--;
         }
@@ -256,6 +256,7 @@ int SymbolTable::getStackOffset(Token* name){
             offset++;
         }
     }
+    return -1;
 }
 
 bool isNumeric(string type){

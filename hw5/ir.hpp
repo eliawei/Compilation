@@ -114,15 +114,6 @@ void emitString (Node* res, Token* str){
                               " x i8]* " + str_reg + ", i32 0, i32 0");
 }
 
-void storeInStack(SymbolTable* symbol_table, Token* id, Expression* exp, Token* type){
-    int stack_offset = symbol_table->getStackOffset(id);
-    string stack_ptr = freshReg();
-    string res_reg = (type->token.compare("BOOL") != 0) ? exp->register_name : boolAssignment(exp);
-    emit(stack_ptr + " = getelementprt inbounds i32, i32* %f" + to_string(function_cnt) + "args, i32 "
-                    + to_string(stack_offset));
-    emit("store i32 " + res_reg + ", i32* " + stack_ptr);
-}
-
 string boolAssignment(Node* boolExp){
     bool_assign_cnt++;
     string phi_res = freshReg();
@@ -147,6 +138,16 @@ string boolAssignment(Node* boolExp){
     }
     return to_load;
 }
+void storeInStack(SymbolTable* symbol_table, Token* id, Expression* exp, Token* type){
+    int stack_offset = symbol_table->getStackOffset(id);
+    string stack_ptr = freshReg();
+    string res_reg = (type->token.compare("BOOL") != 0) ? exp->register_name : boolAssignment(exp);
+    emit(stack_ptr + " = getelementprt inbounds i32, i32* %f" + to_string(function_cnt) + "args, i32 "
+                    + to_string(stack_offset));
+    emit("store i32 " + res_reg + ", i32* " + stack_ptr);
+}
+
+
 
 void enterFunctionIR (Token* type, Token* id, FormalsList* args){
     function_cnt++;
@@ -177,6 +178,8 @@ void enterFunctionIR (Token* type, Token* id, FormalsList* args){
 void exitFunctionIR(Token* type){
     if(type->token.compare("VOID") == 0){
         emit("ret void");
+    }else{
+        emit("ret i32 1");
     }
     emit("}");
 }
