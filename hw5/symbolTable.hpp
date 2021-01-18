@@ -77,6 +77,7 @@ class SymbolTable{
     string getType(Node* id1, bool is_function=false);
     vector<string>* getFuncArgs(Node* id1);
     void validateRetType(Node* exp, int line_num);
+    int getStackOffset(Token* name);
     bool validateNumeric(Node* exp1, Node* exp2);
     bool validateBoolean(Node* exp1, Node* exp2);
     bool validateBoolean(Node* exp);

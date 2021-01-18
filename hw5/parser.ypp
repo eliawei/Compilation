@@ -58,19 +58,25 @@ void yyerror(char const*);
 // Rules
 %%
 Program:
-	M Funcs { 	symbol_table->validateMainFunc();
+	Init Funcs { 	symbol_table->validateMainFunc();
 				$$ = $1; symbol_table->exitScope();}
 ;
-M:
-/*epsilon*/ { symbol_table = new SymbolTable(); }
+Init:
+/*epsilon*/ { symbol_table = new SymbolTable(); 
+			  declareInitialFuncs();
+			}
 ;
 Funcs: 
 	FuncDecl Funcs { $$ = new Funcs($1, $2); }
 	| { $$ = new Funcs(); }
 ;
 FuncDecl:
-	RetType ID LPAREN Formals RPAREN { symbol_table->insertFunction($2, $1, $4); }
-	LBRACE Statements RBRACE {	symbol_table->exitScope(); }
+	RetType ID LPAREN Formals RPAREN { symbol_table->insertFunction($2, $1, $4); 
+										enterFunctionIR((Token*)$1, (Token*)$2, (FormalsList*)$4);
+									 }
+	LBRACE Statements RBRACE 		 { symbol_table->exitScope();
+									   exitScopeIR((Token*)$1);
+									 }
 ;
 RetType:
 	Type {$$ = $1; }
@@ -92,18 +98,28 @@ FormalDecl:
 				$$ = new Declaration(((Token*)($1)), ((Token*)($2))); }
 ;
 Statements:
-	Statement { $$ = new Statements($1); }
-	| Statements Statement { $$ = new Statements($2, $1); }
+	Statement { $$ = new Statements($1);
+				$$->nextlist = $1->nextlist;	
+			  }
+	| Statements M Statement { $$ = new Statements($2, $1); 
+							   bpatch($1->nextlist, (Marker*)$2->label);
+							   $$->nextlist = $3->nextlist;
+							 }
 ;
 Statement:
 	LBRACE { symbol_table->enterScope(); }
 			Statements RBRACE {symbol_table->exitScope(); $$ = $2; }
-	| Type ID SC { 				if(symbol_table->isIdentifierDeclared(((Token*)($2))->token, true)){
-									output::errorDef(yylineno,((Token*)($2))->token);
-									exit(1);
-								}
-								symbol_table->insert($1, $2);
-								$$ = new Declaration(((Token*)($1)), ((Token*)($2))); }
+	| Type ID SC { 			if(symbol_table->isIdentifierDeclared(((Token*)($2))->token, true)){
+								output::errorDef(yylineno,((Token*)($2))->token);
+								exit(1);
+							}
+							symbol_table->insert($1, $2);
+							$$ = new Declaration(((Token*)($1)), ((Token*)($2))); 
+							int stack_offset = symbol_table->getStackOffset((Token*)($2));
+                            string stack_ptr = freshReg();
+                            emit(stack_ptr + " = getelementptr inbounds i32, i32* %f" + to_string(function_cnt) + "args, i32 " + to_string(stack_offset));
+                            emit("store i32 0, i32* " + stack_ptr);
+							}
 	| Type ID ASSIGN Exp SC { 	
 								if(symbol_table->isIdentifierDeclared(((Token*)($2))->token, true)){
 									output::errorDef(yylineno,((Token*)($2))->token);
@@ -113,8 +129,9 @@ Statement:
 									output::errorMismatch(yylineno);
 									exit(1);
 								}
-								
-							symbol_table->insert($1, $2); $$ = new Declaration(((Token*)($1)), ((Token*)($2)), ((Token*)($4))); }
+								symbol_table->insert($1, $2); $$ = new Declaration(((Token*)($1)), ((Token*)($2)), ((Token*)($4))); 
+								storeInStack(symbol_table, (Token*)($2), (Expression*)($4), (Token*)($1));
+								}
 	| ID ASSIGN Exp SC { 	
 							if(!symbol_table->isIdentifierDeclared(((Token*)($1))->token)){
 								output::errorUndef(yylineno,((Token*)($1))->token);
@@ -128,18 +145,39 @@ Statement:
 								delete id_type_t;
 								exit(1);
 							}
+							$$ = new Assignment($1, $3); 
+							storeInStack(symbol_table, (Token*)($1), (Expression*)($3), id_type_t);
 							delete id_type_t;
-							$$ = new Assignment($1, $3); }
+							}
 	| Call SC { $$ = $1; }
 	| RETURN SC { 	symbol_table->validateRetType(nullptr, yylineno);
 					$$ = new Return(); }
 	| RETURN Exp SC { 	symbol_table->validateRetType($2, yylineno);
 						$$ = new Return((Expression*)($1)); }
-	| IF LPAREN Exp RPAREN MIF Statement { symbol_table->exitScope(); $$ = new If($3, $5); }
-	| IF LPAREN Exp RPAREN MIF Statement ELSE { symbol_table->exitScope(); symbol_table->enterScope();}
-		Statement { symbol_table->exitScope(); $$ = new If($3, $5, $7);}
-	| WHILE LPAREN Exp RPAREN { symbol_table->enterScope(true); }
-		 Statement { symbol_table->exitScope(); $$ = new While($3, $5); }
+
+	| IF LPAREN Exp RPAREN MIF M Statement { symbol_table->exitScope(); $$ = new If($3, $5);
+											 bpath($3->truelist, (Marker*)($6)->label);
+											 $$->nextlist = merge($7->nextlist, $3->falselist);
+											}
+
+	| IF LPAREN Exp RPAREN MIF M Statement ELSE { symbol_table->exitScope(); symbol_table->enterScope();
+												  bpath($3->truelist, (Marker*)($6)->label);
+												  int address = emit("br label @");
+												  $7->nextlist = merge($7->nextlist, makelist({address, FIRST}));
+												}
+									M Statement { symbol_table->exitScope(); $$ = new If($3, $5, $7);
+												   bpath($3->falselist, (Marker*)($9)->label);
+												   $$->nextlist = merge($7->nextlist, $10->nextlist);												   string label = genLabel();
+												   bpatch($$->nextlist, label);
+												}
+
+	| WHILE LPAREN M Exp RPAREN { symbol_table->enterScope(true); }
+		 			M Statement { symbol_table->exitScope(); $$ = new While($3, $5);
+					 			  bpatch($4->truelist, (Marker)($6)->label);
+								  bpatch($7->nextlist, (Marker*)($3)->label);
+								  $$->nextlist = $4->nextlist;
+		  						}
+
 	| BREAK SC { if(!symbol_table->isWhileScope()){
 					output::errorUnexpectedBreak(yylineno);
 					exit(1);
@@ -204,50 +242,86 @@ Exp:
 							}
 							$$ = new Expression(symbol_table->getType($1)); }
 	| Call { $$ = $1; }
-	| NUM { $$ = new Num((Token*)($1)); }
-	| NUM B { 				if(!symbol_table->validateByteLen($1)){
-									output::errorByteTooLarge(yylineno, ((Token*)$1)->token);
-									exit(1);
-							}
-							$$ = new NumB((Num*)($1)); }
-	| STRING { $$ = new StringExp((Token*)($1)); }
-	| TRUE { $$ = new Bool((Expression*)($1)); }
-	| FALSE { $$ = new Bool((Expression*)($1)); }
+	| NUM { $$ = new Num((Token*)($1));
+			$$->register_name = freshReg();
+			emit($$->register_name + " = add i32 " + (Num*)($$)->num->token + ", 0"); 
+			}
+	| NUM B { 	if(!symbol_table->validateByteLen($1)){
+					output::errorByteTooLarge(yylineno, ((Token*)$1)->token);
+					exit(1);
+				}
+				$$ = new NumB((Num*)($1));
+				$$->register_name = freshReg();
+				emit($$->register_name + " = add i32 " + (Num*)($1)->num->token + ", 0"); 
+			}
+	| STRING { $$ = new StringExp((Token*)($1));
+				emitString((Node*)($$), (Token*)($1));
+			 }
+	| TRUE { $$ = new Bool((Expression*)($1)); 
+			 int address = emit("br label @");
+			 $$->truelist = makelist({address, FIRST});
+			 }
+	| FALSE { $$ = new Bool((Expression*)($1));
+			  int address = emit("br label @");
+			  $$->falselist = makelist({address, FIRST}); 
+			  }
 	| NOT Exp { 			if(!symbol_table->validateBoolean($2)){
 								output::errorMismatch(yylineno);
 								exit(1);
 							}
-							$$ = new Not((Expression*)($2)); }
-	| Exp AND Exp { 		if(!symbol_table->validateBoolean($1, $3)){
+							$$ = new Not((Expression*)($2)); 
+							$$->truelist = $2->falselist;
+							$$->falselist = $2->truelist;
+							}
+	| Exp AND M Exp { 		if(!symbol_table->validateBoolean($1, $3)){
 								output::errorMismatch(yylineno);
 								exit(1);
 							}
-							$$ = new And((Expression*)($1), (Expression*)($3)); }
-	| Exp OR Exp { 			if(!symbol_table->validateBoolean($1, $3)){
+							$$ = new And((Expression*)($1), (Expression*)($3));
+							bpatch($1->truelist, (Marker*)($3)->label);
+							$$->truelist = $4->truelist;
+							$$->falselist = merge($1->falselist, $4->falselist);
+							}
+	| Exp OR M Exp { 		if(!symbol_table->validateBoolean($1, $3)){
 								output::errorMismatch(yylineno);
 								exit(1);
 							}
-							$$ = new Or((Expression*)($1), (Expression*)($3)); }
+							$$ = new Or((Expression*)($1), (Expression*)($3)); 
+							bpatch($1->falselist, (Marker*)($3)->label);
+							$$->falselist = $4->falselist;
+							$$->truelist = merge($1->truelist, $4->truelist);
+							}
 	| Exp RELOP_EQ Exp { 	if(!symbol_table->validateNumeric($1, $3)){
 								output::errorMismatch(yylineno);
 								exit(1);
 							}
-							$$ = new Relop((Expression*)($1), (Token*)($3), (Expression*)($2)); }
+							$$ = new Relop((Expression*)($1), (Token*)($3), (Expression*)($2));
+							emitCondition((Node*)($$), (Expression*)($1), (Token*)($2), (Expression*)($3));
+							}
 	| Exp RELOP_REST Exp { 	if(!symbol_table->validateNumeric($1, $3)){
 								output::errorMismatch(yylineno);
 								exit(1);
 							}
-							$$ = new Relop((Expression*)($1), (Token*)($3), (Expression*)($2)); }
+							$$ = new Relop((Expression*)($1), (Token*)($3), (Expression*)($2)); 
+							emitCondition((Node*)($$), (Expression*)($1), (Token*)($2), (Expression*)($3));
+							}
 	| Exp RELOP_IN Exp { 	if(!symbol_table->validateRelopInTypes($1, $3)){
 								output::errorMismatch(yylineno);
 								exit(1);
-							}$$ = new Relop((Expression*)($1), (Token*)($3), (Expression*)($2)); }
+							}
+							$$ = new Relop((Expression*)($1), (Token*)($3), (Expression*)($2)); }
 	| LPAREN Type RPAREN Exp { if(!symbol_table->validateConversion($2, $4)){
 								output::errorMismatch(yylineno);
 								exit(1);
 							}
 							$$ = new Expression("INT"); }
 ;
+
+M: { int buf_address = emit("br label @");
+	 string label = genLabel();
+	 bpatch(makelist({buf_address, FIRST}), label);
+	 $$ = new Marker(label);
+	 }
 %%
 
 // C user routines

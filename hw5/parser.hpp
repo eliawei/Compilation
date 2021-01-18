@@ -5,10 +5,19 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include "bp.hpp"
 using namespace std;
 
 struct Node{
     string register_name;
+    string label;
+    vector<pair<int,BranchLabelIndex>> truelist;
+    vector<pair<int,BranchLabelIndex>> falselist;
+    vector<pair<int,BranchLabelIndex>> nextlist;
+
+    Node() : truelist(vector<pair<int,BranchLabelIndex>>()), falselist(vector<pair<int,BranchLabelIndex>>()),
+            nextlist(vector<pair<int,BranchLabelIndex>>()){}
+
 };
 
 struct Token : public Node{
@@ -20,6 +29,12 @@ struct Token : public Node{
             for (auto & c: token) c = toupper(c);
         }
     }
+};
+
+struct Marker : public Node{
+    Marker(string m_label){
+        label = m_label;
+    } 
 };
 
 struct Expression : public Node{
