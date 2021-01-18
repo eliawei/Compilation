@@ -143,7 +143,7 @@ void SymbolTable::exitScope(){
             this->cur_offset--;
         }
     }
-    delete scope;
+    //delete scope;
     tables_stack->pop_back();
 }
 
@@ -249,8 +249,15 @@ void SymbolTable::validateRetType(Node* exp, int line_num){
 
 int SymbolTable::getStackOffset(Token* name){
     int offset = 0;
-    for (Scope* scope : *tables_stack){
-        for(ScopeRow* row : *scope->scope_st){
+    int i = 0;
+    for(; i < tables_stack->size(); i++){
+        if((*tables_stack)[i]->is_function){
+            break;
+        }
+    }
+    for(int j = i; j < tables_stack->size(); j++){
+        Scope* cur_scope = (*tables_stack)[j];
+        for(ScopeRow* row : *cur_scope->scope_st){
             if(row->name.compare(name->token) == 0)
                 return offset;
             offset++;

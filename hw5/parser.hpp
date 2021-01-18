@@ -9,15 +9,14 @@
 using namespace std;
 
 struct Node{
-    string register_name;
-    string label;
     vector<pair<int,BranchLabelIndex>> truelist;
     vector<pair<int,BranchLabelIndex>> falselist;
     vector<pair<int,BranchLabelIndex>> nextlist;
+    string register_name = "";
+    string label = "";
 
     Node() : truelist(vector<pair<int,BranchLabelIndex>>()), falselist(vector<pair<int,BranchLabelIndex>>()),
             nextlist(vector<pair<int,BranchLabelIndex>>()){}
-
 };
 
 struct Token : public Node{

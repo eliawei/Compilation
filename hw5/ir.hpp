@@ -142,30 +142,34 @@ void storeInStack(SymbolTable* symbol_table, Token* id, Expression* exp, Token* 
     int stack_offset = symbol_table->getStackOffset(id);
     string stack_ptr = freshReg();
     string res_reg = (type->token.compare("BOOL") != 0) ? exp->register_name : boolAssignment(exp);
-    emit(stack_ptr + " = getelementprt inbounds i32, i32* %f" + to_string(function_cnt) + "args, i32 "
+    emit(stack_ptr + " = getelementptr inbounds i32, i32* %f" + to_string(function_cnt) + "args, i32 "
                     + to_string(stack_offset));
     emit("store i32 " + res_reg + ", i32* " + stack_ptr);
 }
-
-
 
 void enterFunctionIR (Token* type, Token* id, FormalsList* args){
     function_cnt++;
     string return_type = (type->token.compare("VOID") == 0 ) ? "void" : "i32";
     string arg_list = "";
     FormalsList* current_args_list = args;
+    if(!current_args_list->value) //functions with no arguments
+        current_args_list = nullptr;
+
     int i = 1;
     while(current_args_list){
         arg_list += "i32 %f" + to_string(function_cnt) + "n" + to_string(i);
-        if(current_args_list->next)
+        if(current_args_list->next){
             arg_list += ", ";
+            current_args_list = (FormalsList*)(current_args_list->next);
+        }else{
+            break;
+        }
         i++;
-        current_args_list = (FormalsList*)current_args_list->next;
-       
+
     }
-    emit("define " + return_type + "@" + id->token + "(" + arg_list + "){");
+    emit("define " + return_type + " @" + id->token + "(" + arg_list + "){");
     
-    string stack_ptr = "f" + to_string(function_cnt) + "args";
+    string stack_ptr = "%f" + to_string(function_cnt) + "args";
     emit(stack_ptr + " = alloca i32, i32 50");
 
     for(int j = 0; j < i; j++){
@@ -182,4 +186,22 @@ void exitFunctionIR(Token* type){
         emit("ret i32 1");
     }
     emit("}");
+}
+
+void handleId(SymbolTable* symbol_table, Expression* res, Token* id){
+    int offset = symbol_table->getStackOffset(id);
+    string stack_ptr = freshReg();
+    emit(stack_ptr + "= getelementptr inbounds i32, i32* %f" + to_string(function_cnt) + "args, i32 " + to_string(offset));
+    string cur_reg = freshReg();
+    emit(cur_reg + "= load i32, i32* " + stack_ptr);
+    if(res->type.compare("BOOL") != 0){
+        res->register_name = cur_reg;
+    }
+    else{
+        string cond = freshReg();
+        emit(cond + " = icmp eq i32 0, " + cur_reg);
+        int address = emit("br i1 " + cond + ", label @, label @");
+        res->falselist = makelist({address, FIRST});
+        res->truelist = makelist({address, SECOND});
+    }
 }

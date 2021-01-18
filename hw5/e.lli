@@ -1,0 +1,30 @@
+@.int_specifier = constant [4 x i8] c"%d\0A\00"
+@.str_specifier = constant [4 x i8] c"%s\0A\00"
+@.str2 = constant [14 x i8] c""val is true"\00"
+declare i32 @printf(i8*, ...)
+declare void @exit(i32)
+define void @printi(i32) {
+call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.int_specifier, i32 0, i32 0), i32 %0)
+ret void
+}
+define void @print(i8*) {
+call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.str_specifier, i32 0, i32 0), i8* %0)
+ret void
+}
+define void@printByValue(i32 %f1n1){
+%f1args = alloca i32, i32 50
+%r1 = getelementptr inbounds i32, i32* %f1args, i32 0
+store i32 %f1n1, i32* %r1
+%r3 = getelementptr [14 x i8], [14 x i8]* @.str2, i32 0, i32 0
+ret void
+}
+define void@main(){
+%f2args = alloca i32, i32 50
+%r4 = getelementptr inbounds i32, i32* %f2args, i32 0
+store i32 %f2n1, i32* %r4
+br label @
+br label %label_23
+label_23:
+br label @
+ret void
+}
