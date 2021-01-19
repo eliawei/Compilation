@@ -99,8 +99,17 @@ FormalDecl:
 Statements:
 	Statement { $$ = new Statements($1);
 				$$->nextlist = $1->nextlist;
+<<<<<<< HEAD
 				cout << "in statements22222" << ($$->nextlist).size() << endl;
 	
+=======
+<<<<<<< HEAD
+				cout << "in statements22222" << ($$->nextlist).size() << endl;
+	
+=======
+				cout<<"dddddddddddddddddddddddddddddddddddd";	
+>>>>>>> 92a755c19b6cbe261fe936acb470c94756a4506d
+>>>>>>> 4037585c67f2c57e89d6ac51d53b137afee37963
 			  }
 	| Statements M Statement { $$ = new Statements($2, $1); 
 								bpatch($1->nextlist, ((Marker*)($2))->label);
@@ -109,12 +118,23 @@ Statements:
 ;
 Statement:
 	LBRACE { symbol_table->enterScope(); }
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 4037585c67f2c57e89d6ac51d53b137afee37963
 			Statements RBRACE {$$ = $3; 
 			cout << "hiiiiiiiiiiiiiiiiiiiiiiiiiiii" <<endl;
 							cout << "in statement33333333" << (((Statements*)($2))->nextlist).size() << endl;
 
 							symbol_table->exitScope(); 
 						}
+<<<<<<< HEAD
+=======
+=======
+			Statements RBRACE {symbol_table->exitScope(); $$ = $2; 
+			cout<<"333333333333333333";}
+>>>>>>> 92a755c19b6cbe261fe936acb470c94756a4506d
+>>>>>>> 4037585c67f2c57e89d6ac51d53b137afee37963
 	| Type ID SC { 			if(symbol_table->isIdentifierDeclared(((Token*)($2))->token, true)){
 								output::errorDef(yylineno,((Token*)($2))->token);
 								exit(1);
@@ -166,7 +186,15 @@ Statement:
 	| IF LPAREN Exp RPAREN MIF M Statement { symbol_table->exitScope(); $$ = new If($3, $5);
 											 bpatch($3->truelist, ((Marker*)($6))->label);
 											 $$->nextlist = merge($7->nextlist, $3->falselist);
+<<<<<<< HEAD
 											// $$->nextlist = vector<pair<int,BranchLabelIndex>>();
+=======
+<<<<<<< HEAD
+											// $$->nextlist = vector<pair<int,BranchLabelIndex>>();
+=======
+											 cout<<"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+>>>>>>> 92a755c19b6cbe261fe936acb470c94756a4506d
+>>>>>>> 4037585c67f2c57e89d6ac51d53b137afee37963
 											}
 
 	| IF LPAREN Exp RPAREN MIF M Statement ELSE { symbol_table->exitScope(); symbol_table->enterScope();
