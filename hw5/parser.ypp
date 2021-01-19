@@ -99,8 +99,12 @@ FormalDecl:
 Statements:
 	Statement { $$ = new Statements($1);
 				$$->nextlist = $1->nextlist;
+<<<<<<< HEAD
 				cout << "in statements22222" << ($$->nextlist).size() << endl;
 	
+=======
+				cout<<"dddddddddddddddddddddddddddddddddddd";	
+>>>>>>> 92a755c19b6cbe261fe936acb470c94756a4506d
 			  }
 	| Statements M Statement { $$ = new Statements($2, $1); 
 								bpatch($1->nextlist, ((Marker*)($2))->label);
@@ -109,12 +113,17 @@ Statements:
 ;
 Statement:
 	LBRACE { symbol_table->enterScope(); }
+<<<<<<< HEAD
 			Statements RBRACE {$$ = $3; 
 			cout << "hiiiiiiiiiiiiiiiiiiiiiiiiiiii" <<endl;
 							cout << "in statement33333333" << (((Statements*)($2))->nextlist).size() << endl;
 
 							symbol_table->exitScope(); 
 						}
+=======
+			Statements RBRACE {symbol_table->exitScope(); $$ = $2; 
+			cout<<"333333333333333333";}
+>>>>>>> 92a755c19b6cbe261fe936acb470c94756a4506d
 	| Type ID SC { 			if(symbol_table->isIdentifierDeclared(((Token*)($2))->token, true)){
 								output::errorDef(yylineno,((Token*)($2))->token);
 								exit(1);
@@ -122,9 +131,11 @@ Statement:
 							symbol_table->insert($1, $2);
 							$$ = new Declaration(((Token*)($1)), ((Token*)($2))); 
 							int stack_offset = symbol_table->getStackOffset((Token*)($2));
+							cout<<"gggggggggggggggggggggggggggggggggggg"<<stack_offset;
                             string stack_ptr = freshReg();
                             emit(stack_ptr + " = getelementptr inbounds i32, i32* %f" + to_string(function_cnt) + "args, i32 " + to_string(stack_offset));
                             emit("store i32 0, i32* " + stack_ptr);
+							cout<<"Hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh";
 							}
 	| Type ID ASSIGN Exp SC { 	
 								if(symbol_table->isIdentifierDeclared(((Token*)($2))->token, true)){
@@ -166,7 +177,11 @@ Statement:
 	| IF LPAREN Exp RPAREN MIF M Statement { symbol_table->exitScope(); $$ = new If($3, $5);
 											 bpatch($3->truelist, ((Marker*)($6))->label);
 											 $$->nextlist = merge($7->nextlist, $3->falselist);
+<<<<<<< HEAD
 											// $$->nextlist = vector<pair<int,BranchLabelIndex>>();
+=======
+											 cout<<"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+>>>>>>> 92a755c19b6cbe261fe936acb470c94756a4506d
 											}
 
 	| IF LPAREN Exp RPAREN MIF M Statement ELSE { symbol_table->exitScope(); symbol_table->enterScope();

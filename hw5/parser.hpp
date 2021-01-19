@@ -9,6 +9,11 @@
 using namespace std;
 
 struct Node{
+<<<<<<< HEAD
+=======
+    string register_name = "";
+    string label = "";
+>>>>>>> 92a755c19b6cbe261fe936acb470c94756a4506d
     vector<pair<int,BranchLabelIndex>> truelist;
     vector<pair<int,BranchLabelIndex>> falselist;
     vector<pair<int,BranchLabelIndex>> nextlist;
