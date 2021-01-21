@@ -73,7 +73,8 @@ FuncDecl:
 	RetType ID LPAREN Formals RPAREN { symbol_table->insertFunction($2, $1, $4); 
 										enterFunctionIR((Token*)$1, (Token*)$2, (FormalsList*)$4);
 									 }
-	LBRACE Statements RBRACE 		 { symbol_table->exitScope();
+	LBRACE Statements M RBRACE 		 { symbol_table->exitScope();
+									   bpatch($8->nextlist, ((Marker*)($9))->label);
 									   exitFunctionIR((Token*)$1);
 									 }
 ;
@@ -99,7 +100,6 @@ FormalDecl:
 Statements:
 	Statement { $$ = new Statements($1);
 				$$->nextlist = $1->nextlist;
-				cout << "in statements22222" << ($$->nextlist).size() << endl;
 			  }
 	| Statements M Statement { $$ = new Statements($2, $1); 
 								bpatch($1->nextlist, ((Marker*)($2))->label);
@@ -110,9 +110,6 @@ Statement:
 	LBRACE { symbol_table->enterScope(); }
 
 			Statements RBRACE {$$ = $3; 
-			cout << "hiiiiiiiiiiiiiiiiiiiiiiiiiiii" <<endl;
-							cout << "in statement33333333" << (((Statements*)($2))->nextlist).size() << endl;
-
 							symbol_table->exitScope(); 
 						}
 	| Type ID SC { 			if(symbol_table->isIdentifierDeclared(((Token*)($2))->token, true)){
@@ -137,7 +134,6 @@ Statement:
 								}
 								symbol_table->insert($1, $2); 
 								$$ = new Declaration(((Token*)($1)), ((Token*)($2)), ((Token*)($4))); 
-								cout << "in declaration1111111" << ($$->nextlist).size() << endl;
 								storeInStack(symbol_table, (Token*)($2), (Expression*)($4), (Token*)($1));
 								}
 	| ID ASSIGN Exp SC { 	
@@ -166,20 +162,19 @@ Statement:
 	| IF LPAREN Exp RPAREN MIF M Statement { symbol_table->exitScope(); $$ = new If($3, $5);
 											 bpatch($3->truelist, ((Marker*)($6))->label);
 											 $$->nextlist = merge($7->nextlist, $3->falselist);
-											// $$->nextlist = vector<pair<int,BranchLabelIndex>>();
-
-											// $$->nextlist = vector<pair<int,BranchLabelIndex>>();
 											}
 
 	| IF LPAREN Exp RPAREN MIF M Statement ELSE { symbol_table->exitScope(); symbol_table->enterScope();
-												  bpatch($3->truelist, ((Marker*)($6))->label);
 												  int address = emit("br label @");
 												  $7->nextlist = merge($7->nextlist, makelist({address, FIRST}));
 												}
 									M Statement { symbol_table->exitScope(); $$ = new If($3, $5, $7);
-												   bpatch($3->falselist, ((Marker*)($9))->label);
-												   $$->nextlist = merge($7->nextlist, $10->nextlist);												   
+												   bpatch($3->falselist, ((Marker*)($10))->label);
+												   bpatch($3->truelist, ((Marker*)($6))->label);
+												   int address = emit("br label @");
 												   string label = genLabel();
+												   $7->nextlist = merge($7->nextlist, makelist({address, FIRST}));
+												   $$->nextlist = merge($7->nextlist, $11->nextlist);												   
 												   bpatch($$->nextlist, label);
 												}
 
@@ -214,11 +209,13 @@ Call:
 								}
 								string ret_type = symbol_table->getType($1, true);
 								$$ = new Call((Token*)($1), (ExpList*)($3), ret_type); 
+								callFunction(ret_type, ((Token*)($1)), ((ExpList*)($3)));
 							}
 								
 	| ID LPAREN RPAREN { 		symbol_table->validateFunctionCall($1, yylineno);
 								string ret_type = symbol_table->getType($1, true);
-								$$ = new Call((Token*)($1),ret_type); }
+								$$ = new Call((Token*)($1),ret_type);
+								callFunction(ret_type, ((Token*)($1))); }
 ;
 ExpList:
 	Exp { $$ = new ExpList((Expression*)($1)); }
@@ -288,20 +285,20 @@ Exp:
 							$$->truelist = $2->falselist;
 							$$->falselist = $2->truelist;
 							}
-	| Exp AND M Exp { 		if(!symbol_table->validateBoolean($1, $3)){
+	| Exp AND M Exp { 		if(!symbol_table->validateBoolean($1, $4)){
 								output::errorMismatch(yylineno);
 								exit(1);
 							}
-							$$ = new And((Expression*)($1), (Expression*)($3));
+							$$ = new And((Expression*)($1), (Expression*)($4));
 							bpatch($1->truelist, ((Marker*)($3))->label);
 							$$->truelist = $4->truelist;
 							$$->falselist = merge($1->falselist, $4->falselist);
 							}
-	| Exp OR M Exp { 		if(!symbol_table->validateBoolean($1, $3)){
+	| Exp OR M Exp { 		if(!symbol_table->validateBoolean($1, $4)){
 								output::errorMismatch(yylineno);
 								exit(1);
 							}
-							$$ = new Or((Expression*)($1), (Expression*)($3)); 
+							$$ = new Or((Expression*)($1), (Expression*)($4)); 
 							bpatch($1->falselist, ((Marker*)($3))->label);
 							$$->falselist = $4->falselist;
 							$$->truelist = merge($1->truelist, $4->truelist);

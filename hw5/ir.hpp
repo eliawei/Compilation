@@ -8,6 +8,7 @@ using namespace std;
 int reg_cnt = 0;
 int function_cnt = 0;
 int bool_assign_cnt = 0;
+const string set_type = ""; 
 
 string freshReg(){
     reg_cnt++;
@@ -60,6 +61,7 @@ void declareInitialFuncs(){
     emit("declare void @exit(i32)");
     emitGlobal("@.int_specifier = constant [4 x i8] c\"%d\\0A\\00\"");
     emitGlobal("@.str_specifier = constant [4 x i8] c\"%s\\0A\\00\"");
+    emitGlobal("@.zero_specifier = constant [23 x i8] c\"Error division by zero\\00\"");
     emit("define void @printi(i32) {");
     emit("call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.int_specifier, i32 0, i32 0), i32 %0)");
     emit("ret void");
@@ -68,6 +70,21 @@ void declareInitialFuncs(){
     emit("call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.str_specifier, i32 0, i32 0), i8* %0)");
     emit("ret void");
     emit("}");
+}
+
+void ValidateNoZeroDiv(Expression* exp2){
+    string zeroLabel = "label_zero";
+    string nonZeroLabel = "label_non_zero";
+    string comp_reg = freshReg();
+    //compare expression 2 to 0
+    emit(comp_reg + " = " + "icmp eq i32 " + exp2->register_name +", 0");
+    //if is zero than print error and exit else continue
+    emit("br i1 " + comp_reg + ", label %" + zeroLabel + ", label %"+ nonZeroLabel);
+    emit(zeroLabel + ":");
+    emit("call void @print(i8* getelementptr ([23 x i8], [23 x i8]* @.zero_specifier, i32 0, i32 0))");
+    emit("call void @exit(i32 0)");
+    emit("br label %" + nonZeroLabel);
+    emit(nonZeroLabel + ":");
 }
 
 void arithmeticCalc(Expression* res, Expression* exp1, Token* oper, Expression* exp2){
@@ -79,7 +96,7 @@ void arithmeticCalc(Expression* res, Expression* exp1, Token* oper, Expression* 
     if(oper->token.compare("*") == 0) op = "mul";
     if(oper->token.compare("/") == 0) {
         op = "sdiv";
-        //TODO: check if not divided by zero
+        ValidateNoZeroDiv(exp2);
     }
 
     emit(res_register + " = " + op + " i32 " + exp1->register_name + ", " +exp2->register_name);
@@ -89,6 +106,8 @@ void arithmeticCalc(Expression* res, Expression* exp1, Token* oper, Expression* 
         emit(res->register_name + " = zext i8 " + temp_reg + " to i32");
     }
 }
+
+
 
 void emitCondition(Node* res, Expression* exp1, Token* oper, Expression* exp2){
     string cond = freshReg();
@@ -108,9 +127,9 @@ void emitCondition(Node* res, Expression* exp1, Token* oper, Expression* exp2){
 void emitString (Node* res, Token* str){
     string str_reg = freshStrReg();
     int string_len = str->token.length() + 1;
-    emitGlobal(str_reg + " = constant [" + to_string(string_len) + " x i8] c\"" + str->token + "\\00\"");
+    emitGlobal(str_reg + " = constant [" + to_string(string_len-2) + " x i8] c\""+ str->token.substr(1,string_len-3) + "\\00\"");
     res->register_name = freshReg();
-    emit(res->register_name + " = getelementptr [" + to_string(string_len) + " x i8], [" + to_string(string_len) +
+    emit(res->register_name + " = getelementptr [" + to_string(string_len-2) + " x i8], [" + to_string(string_len-2) +
                               " x i8]* " + str_reg + ", i32 0, i32 0");
 }
 
@@ -118,7 +137,7 @@ string boolAssignment(Node* boolExp){
     bool_assign_cnt++;
     string phi_res = freshReg();
     string result_reg = freshReg();
-    string false_label = genLabel();;
+    string false_label = genLabel();
     int false_address = emit("br label @");
     string true_label = genLabel();
     int true_address = emit("br label @");
@@ -147,31 +166,52 @@ void storeInStack(SymbolTable* symbol_table, Token* id, Expression* exp, Token* 
     emit("store i32 " + res_reg + ", i32* " + stack_ptr);
 }
 
+void callFunction(string type, Token* id, ExpList* params = nullptr){
+    string res_reg = freshReg();
+    string return_type = (type.compare("VOID") == 0 ) ? "void" : "i32";
+    string params_list = "";
+    ExpList* current_param = params;
+    while(current_param){
+        string param_type = "";
+        if(id->token.compare("print") == 0){
+            param_type = "i8* ";
+        }else{
+            param_type = (current_param->value->type.compare("SET") != 0) ?  "i32": set_type ;
+        }
+        params_list += param_type + " " + current_param->value->register_name;
+        if(current_param->next){
+            params_list += ", ";
+            current_param = (ExpList*)(current_param->next);
+        }else{
+            break;
+        }
+    }
+    emit("call " + return_type + " @" + id->token + "(" + params_list + ")");
+    
+}
+
 void enterFunctionIR (Token* type, Token* id, FormalsList* args){
     function_cnt++;
     string return_type = (type->token.compare("VOID") == 0 ) ? "void" : "i32";
     string arg_list = "";
     FormalsList* current_args_list = args;
-    if(!current_args_list->value) //functions with no arguments
-        current_args_list = nullptr;
-
-    int i = 1;
-    while(current_args_list){
-        arg_list += "i32 %f" + to_string(function_cnt) + "n" + to_string(i);
-        if(current_args_list->next){
-            arg_list += ", ";
-            current_args_list = (FormalsList*)(current_args_list->next);
-        }else{
-            break;
-        }
-        i++;
-
-    }
-    emit("define " + return_type + " @" + id->token + "(" + arg_list + "){");
-    
     string stack_ptr = "%f" + to_string(function_cnt) + "args";
+    int i = 1;
+    if(current_args_list->value) //functions with no arguments
+        while(current_args_list){
+            arg_list += "i32 %f" + to_string(function_cnt) + "n" + to_string(i);
+            if(current_args_list->next){
+                arg_list += ", ";
+                current_args_list = (FormalsList*)(current_args_list->next);
+            }else{
+                break;
+            }
+            i++;
+    }
+    // Function definition 
+    emit("define " + return_type + " @" + id->token + "(" + arg_list + "){");
+    // Allocate memory on stack for loval vars(max 50)
     emit(stack_ptr + " = alloca i32, i32 50");
-
     for(int j = 0; j < i; j++){
         string cur_arg_reg = freshReg();
         emit(cur_arg_reg + " = getelementptr inbounds i32, i32* " + stack_ptr + ", i32 " + to_string(j));

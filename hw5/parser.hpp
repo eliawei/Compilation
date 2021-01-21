@@ -12,16 +12,11 @@ struct Node{
     vector<pair<int,BranchLabelIndex>> truelist;
     vector<pair<int,BranchLabelIndex>> falselist;
     vector<pair<int,BranchLabelIndex>> nextlist;
-    string register_name;
-    string label;
+    string register_name = "";
+    string label = "";
 
-    Node() {
-        this->truelist = vector<pair<int,BranchLabelIndex>>();
-        this->falselist = vector<pair<int,BranchLabelIndex>>();
-        this->nextlist = vector<pair<int,BranchLabelIndex>>();
-        this->register_name = "";
-        this->label = "";
-    }
+    Node() : truelist(vector<pair<int,BranchLabelIndex>>()), falselist(vector<pair<int,BranchLabelIndex>>()),
+            nextlist(vector<pair<int,BranchLabelIndex>>()){}
 };
 
 struct Token : public Node{
@@ -81,10 +76,7 @@ struct Statements : public Node{
     Node* value;
     Node* next;
 
-    Statements(Node* value) {
-        this->value = value;
-        this->next = nullptr;
-    }
+    Statements(Node* value) : value(value), next(nullptr) {}
     Statements(Node* value, Node* next) : value(value), next(next) {}
 };
 

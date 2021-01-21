@@ -1,10 +1,23 @@
 void printByValue(bool val) {
-	print("111");
+	if (val)
+		print("val is true");
+	else {
+		print("val is false");
+	}
 }
 
 void main() {
+	printByValue(true);
+	printByValue(false);
+
 	if(true)
     {
-        int a;
+        print("true");
     }
+
+    if(false or false and  true)
+    {
+        print("true");
+    }
+    
 }
