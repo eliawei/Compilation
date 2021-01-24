@@ -1,0 +1,42 @@
+// test set - asign from different range
+
+void trueOutput(bool bb){
+    if (bb){
+        print("You're so fuckin' special");
+    }else{
+        print("What the hell am I doin' here? I don't belong here");
+    }
+}
+
+
+void main() 
+{	
+	set[0..10] s1;
+    s1 = s1 + 0;
+    s1 = s1 + 2;
+    s1 = s1 + 4;
+    s1 = s1 + 6;
+    s1 = s1 + 8;
+    s1 = s1 + 10;
+
+    set[11..20] s2 = s1;
+    s2 = s2 + 1;
+    s2 = s2 + 3;
+    s2 = s2 + 5;
+    s2 = s2 + 7;
+    s2 = s2 + 9;
+
+    int j = 0;
+    int i = 0;
+    while (i <= 10){
+        if ( i in s2 ){
+            j = j+ 1;
+        }
+        i = i + 1;
+    }
+
+    trueOutput(j == 11);
+
+    s2 = s2 - 11;
+	
+}

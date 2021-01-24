@@ -295,13 +295,20 @@ bool SymbolTable::validateBoolean(Node* exp){
     return false;
 }
 
+void checkRange(Expression* set, Expression* num){
+
+}
+
 bool SymbolTable::validateSet(Node* exp1, Node* exp2){
     string type1 = ((Expression*)exp1)->type;
     string type2 = ((Expression*)exp2)->type;
-    if(isNumeric(type1) && type2 == "SET")
+    bool is_ok = false;
+    if(isNumeric(type1) && type2 == "SET"){
+        
         return true;
+    }
     if(type1 == "SET" && isNumeric(type2))
-        return true;
+        is_ok = true;
     return false;
 }
 
@@ -362,7 +369,7 @@ void SymbolTable::validateFunctionCall(Node* fun_name, int line_num){
 }
 
 bool SymbolTable::validateConversion(Node* type, Node* exp){
-    string type1 = ((Token*)type)->token;
+    string type1 = ((Token*)((Type*)(type))->type)->token;
     string type2 = ((Expression*)exp)->type;
 
     if(type1 == "INT" && type2 == "SET")

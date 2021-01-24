@@ -1,0 +1,115 @@
+// test set as function paramater different range
+
+void trueOutput(bool bb){
+    if (bb){
+        print("With the lights out, it's less dangerous. Here we are now, entertain us (: ");
+    }else{
+        print("I feel stupid and contagious");
+    }
+}
+
+void trueOutput2(bool bb){
+    if (bb){
+        print("Now you do what they told ya");
+    }else{
+        print("Some of those that work forces, Are the same that burn crosses");
+    }
+}
+
+void trueOutput3(bool bb){
+    if (bb){
+        print("And now you do what they told ya, now you're under control");
+    }else{
+        print("Some of those that work forces, Are the same that burn crosses");
+    }
+}
+
+void foo (int x, set[40..50] s){
+    print ("Hello, hello, hello, how low");
+    set [60..80] s1 = s + x;
+
+    int j = 0;
+    int i = 1;
+    while (i <= 3){
+        if ( i in s1 ){
+            j = j+ 1;
+        }
+        i = i + 1b;
+    }
+
+    if (j == 3)
+    {
+        print(" ");
+        trueOutput(true);
+        print(" ");
+        return;
+    }
+
+    x = x - 1;
+
+    if (x == 0)
+    {
+        print(" ");
+        trueOutput(false);
+        print(" ");
+        return;
+    }
+    
+    foo (x, s1);
+}
+
+void main() 
+{	
+    set[0..10] s1;
+    s1 = s1 + 0;
+    trueOutput2( ((int)s1) == 1);
+    s1 = s1 + 2;
+    trueOutput2( ((int)s1) == 2);
+    s1 = s1 + 4;
+    trueOutput2( ((int)s1) == 3);
+    s1 = s1 + 4;
+    trueOutput2( ((int)s1) == 3);
+    s1 = s1 + 4;
+    trueOutput2( ((int)s1) == 3);
+    s1 = s1 + 6;
+    trueOutput2( ((int)s1) == 4);
+    s1 = s1 + 6;
+    trueOutput2( ((int)s1) == 4);
+    s1 = s1 + 8;
+    trueOutput2( ((int)s1) == 5);
+    s1 = s1 + 10;
+    trueOutput2( ((int)s1) == 6);
+    s1 = s1 + 10;
+    trueOutput2( ((int)s1) == 6);
+
+    print(" ");
+
+    set[0..10] s2 = s1;
+    trueOutput3( ((int)s2) == 6);
+    s2 = s2 - 1;
+    trueOutput3( ((int)s2) == 6);
+    s2 = s2 - 0;
+    trueOutput3( ((int)s2) == 5);
+    s2 = s2 - 2;
+    trueOutput3( ((int)s2) == 4);
+    s2 = s2 - 4;
+    trueOutput3( ((int)s2) == 3);
+    s2 = s2 - 4;
+    trueOutput3( ((int)s2) == 3);
+    s2 = s2 - 6;
+    trueOutput3( ((int)s2) == 2);
+    s2 = s2 - 8;
+    trueOutput3( ((int)s2) == 1);
+    s2 = s2 - 10;
+    trueOutput3( ((int)s2) == 0);
+    s2 = s2 - 10;
+    trueOutput3( ((int)s2) == 0);
+
+    print(" ");
+    print("killing in the name of");
+	print(" ");
+    print(" ");
+
+	set[1..3] s;
+	foo (3, s);
+}

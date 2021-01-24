@@ -1,0 +1,52 @@
+// test set - copy 
+
+void trueOutput(bool bb){
+    if (bb){
+        print("I'll see you on the dark side of the moon");
+    }else{
+        print("The lunatic is in my head");
+    }
+}
+
+
+void main() 
+{	
+	set[0..10] s1;
+    s1 = s1 + 0;
+    s1 = s1 + 2;
+    s1 = s1 + 4;
+    s1 = s1 + 6;
+    s1 = s1 + 8;
+    s1 = s1 + 10;
+
+    set[0..10] s2 = s1;
+    s2 = s2 + 1;
+    s2 = s2 + 3;
+    s2 = s2 + 5;
+    s2 = s2 + 7;
+    s2 = s2 + 9;
+
+    int j = 0;
+    int i = 0;
+    while (i <= 10){
+        if ( i in s2 ){
+            j = j+ 1;
+        }
+        i = i + 1;
+    }
+
+    trueOutput(j == 11);
+
+    set[0..10] s3;
+    j = 0;
+    i = 0;
+    while (i <= 10){
+        if ( i in s3 ){
+            j = j+ 1;
+        }
+        i = i + 1;
+    }
+
+    trueOutput(j == 0);
+	
+}

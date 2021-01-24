@@ -1,0 +1,57 @@
+// test set full range
+
+void trueOutput(bool bb){
+    if (bb){
+        print("I tried so hard and got so far");
+    }else{
+        print("But in the end, it doesn't even matter");
+    }
+}
+
+void falseOutput(bool bb){
+    if (bb){
+        print("But in the end, it doesn't even matter");
+    }else{
+        print("I tried so hard and got so far");
+    }
+}
+
+void main() 
+{	
+	set[0..255] s;
+	int i = 0;
+    while (i <= 255){
+        s = s + i;
+        i = i + 1;
+    }
+    
+    int j = 0;
+    i = 0;
+    while (i <= 255){
+        if ( i in s ){
+            j = j+ 1;
+        }
+        i = i + 1;
+    }
+
+    trueOutput(j == 256);
+
+    i = 0;
+    while (i <= 255){
+        s = s - i;
+        i = i + 1;
+    }
+    
+    j = 0;
+    i = 0;
+    while (i <= 255){
+        if ( i in s ){
+            j = j+ 1;
+        }
+        i = i + 1;
+    }
+
+    trueOutput(j == 0);
+    
+    s = s + 256;
+}

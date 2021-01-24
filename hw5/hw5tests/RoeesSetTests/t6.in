@@ -1,0 +1,60 @@
+// test set as function paramater int 2
+
+void trueOutput(bool bb){
+    if (bb){
+        print("Scaramouch, scaramouch will you do the fandango");
+    }else{
+        print("Thunderbolt and lightning - very very frightening me");
+    }
+}
+
+void falseOutput(bool bb){
+    if (bb){
+        print("Thunderbolt and lightning - very very frightening me");
+    }else{
+        print("Scaramouch, scaramouch will you do the fandango");
+    }
+}
+
+bool inSet(int x, set[1..10] s){
+    return (x in s);
+}
+
+void main() 
+{	
+	set[1..10] s;
+	byte i = 1b;
+    while (i <= 10b){
+        s = i + s;
+        i = i + 1b;
+    }
+    
+    int j = 0;
+    i = 1b;
+    while (i <= 10b){
+        if ( inSet(i, s) ){
+            j = j+ 1;
+        }
+        i = i + 1b;
+    }
+
+    trueOutput(j == 10);
+
+    i = 1b;
+    while (i <= 10b){
+        s = i - s;
+        i = i + 1b;
+    }
+    
+    j = 0;
+    i = 1b;
+    while (i <= 10b){
+        if ( inSet(i, s) ){
+            j = j+ 1;
+        }
+        i = i + 1b;
+    }
+
+    trueOutput(j == 0);
+
+}

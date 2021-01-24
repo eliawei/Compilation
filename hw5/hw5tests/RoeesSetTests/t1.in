@@ -1,0 +1,57 @@
+// test set = set +/- int, out of range error
+
+void trueOutput(bool bb){
+    if (bb){
+        print("Damn right!");
+    }else{
+        print("Hell NO!");
+    }
+}
+
+void falseOutput(bool bb){
+    if (bb){
+        print("Hell NO!");
+    }else{
+        print("Damn right!");
+    }
+}
+
+void main() 
+{	
+	set[1..10] s;
+	int i = 1;
+    while (i <= 10){
+        s = s + i;
+        i = i + 1;
+    }
+    
+    int j = 0;
+    i = 1;
+    while (i <= 10){
+        if ( i in s ){
+            j = j+ 1;
+        }
+        i = i + 1;
+    }
+
+    trueOutput(j == 10);
+
+    i = 1;
+    while (i <= 10){
+        s = s - i;
+        i = i + 1;
+    }
+    
+    j = 0;
+    i = 1;
+    while (i <= 10){
+        if ( i in s ){
+            j = j+ 1;
+        }
+        i = i + 1;
+    }
+
+    trueOutput(j == 0);
+
+    bool b1 = 0 in s;
+}

@@ -12,11 +12,17 @@ struct Node{
     vector<pair<int,BranchLabelIndex>> truelist;
     vector<pair<int,BranchLabelIndex>> falselist;
     vector<pair<int,BranchLabelIndex>> nextlist;
-    string register_name = "";
-    string label = "";
+    vector<pair<int,BranchLabelIndex>> continuelist;
+    vector<pair<int,BranchLabelIndex>> breaklist;
+    string register_name;
+    string label;
 
     Node() : truelist(vector<pair<int,BranchLabelIndex>>()), falselist(vector<pair<int,BranchLabelIndex>>()),
-            nextlist(vector<pair<int,BranchLabelIndex>>()){}
+            nextlist(vector<pair<int,BranchLabelIndex>>()), continuelist(vector<pair<int,BranchLabelIndex>>()),
+            breaklist(vector<pair<int,BranchLabelIndex>>()){
+                register_name = "";
+                label = "";
+            }
 };
 
 struct Token : public Node{
@@ -34,6 +40,29 @@ struct Marker : public Node{
     Marker(string m_label){
         label = m_label;
     } 
+};
+
+struct Type : public Node{
+    Token* type;
+
+    Type(Token* type){
+        // this->type = new Token(type->token);
+        this->type = type;
+    }
+};
+
+struct Set : public Type{
+    Token* from_num;
+    Token* to_num;
+    int size;
+    int total_size;
+
+    Set(Token* from_num, Token* to_num) : Type(new Token("set")){
+        this->from_num = new Token(from_num->token);
+        this->to_num = new Token(to_num->token);
+        this->size = 0;
+        this->total_size = 0;
+    }
 };
 
 struct Expression : public Node{
@@ -86,8 +115,8 @@ struct Declaration : public Node{
     Token* var_name;
     Token* value;
 
-    Declaration(Token* type, Token* var_name) : type(type), var_name(var_name), value(nullptr) {}
-    Declaration(Token* type, Token* var_name, Token* value) : type(type), var_name(var_name), value(value) {}
+    Declaration(Type* type, Token* var_name) : type(type->type), var_name(var_name), value(nullptr) {}
+    Declaration(Type* type, Token* var_name, Token* value) : type(type->type), var_name(var_name), value(value) {}
 };
 
 struct Assignment : public Node{
@@ -139,15 +168,6 @@ struct Call : public Expression{
     Call(Token* func_id, ExpList* exp_args, string ret_type) : func_id(func_id), exp_args(exp_args) {
         type = ret_type;
     }
-};
-
-
-
-struct Set : public Node{
-    Node* from_num;
-    Node* to_num;
-
-    Set(Node* from_num, Node* to_num) : from_num(from_num), to_num(to_num) {}
 };
 
 struct Binop : public Expression{

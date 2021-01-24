@@ -76,10 +76,11 @@ FuncDecl:
 	LBRACE Statements M RBRACE 		 { symbol_table->exitScope();
 									   bpatch($8->nextlist, ((Marker*)($9))->label);
 									   exitFunctionIR((Token*)$1);
+									   emit("}");
 									 }
 ;
 RetType:
-	Type {$$ = $1; }
+	Type {$$ = ((Type*)($1))->type; }
 	| VOID {$$ = $1; }
 ;
 Formals:
@@ -95,15 +96,19 @@ FormalDecl:
 									output::errorDef(yylineno,((Token*)($2))->token);
 									exit(1);
 							}
-				$$ = new Declaration(((Token*)($1)), ((Token*)($2))); }
+				$$ = new Declaration(((Type*)($1)), ((Token*)($2))); }
 ;
 Statements:
 	Statement { $$ = new Statements($1);
 				$$->nextlist = $1->nextlist;
+				$$->continuelist = $1->continuelist;
+				$$->breaklist = $1->breaklist;
 			  }
 	| Statements M Statement { $$ = new Statements($2, $1); 
 								bpatch($1->nextlist, ((Marker*)($2))->label);
 							   $$->nextlist = $3->nextlist;
+							   $$->continuelist = merge($1->continuelist, $3->continuelist);
+							   $$->breaklist = merge($1->breaklist, $3->breaklist);
 							 }
 ;
 Statement:
@@ -116,52 +121,68 @@ Statement:
 								output::errorDef(yylineno,((Token*)($2))->token);
 								exit(1);
 							}
-							symbol_table->insert($1, $2);
-							$$ = new Declaration(((Token*)($1)), ((Token*)($2))); 
-							int stack_offset = symbol_table->getStackOffset((Token*)($2));
-                            string stack_ptr = freshReg();
-                            emit(stack_ptr + " = getelementptr inbounds i32, i32* %f" + to_string(function_cnt) + "args, i32 " + to_string(stack_offset));
-                            emit("store i32 0, i32* " + stack_ptr);
+							symbol_table->insert(((Type*)($1))->type, $2);
+							$$ = new Declaration(((Type*)($1)), ((Token*)($2)));
+							if(((Type*)($1))->type->token.compare("SET") == 0){
+								$$->register_name = storeSet(symbol_table, (Token*)($2), nullptr, (Set*)($1));
+							}
+							else{
+							storeInStack(symbol_table, (Token*)($2), nullptr, (Type*)($1));
+							}
 							}
 	| Type ID ASSIGN Exp SC { 	
 								if(symbol_table->isIdentifierDeclared(((Token*)($2))->token, true)){
 									output::errorDef(yylineno,((Token*)($2))->token);
 									exit(1);
 								}
-								if(!semantic::AssignValid((Token*)($1),(Expression*)($4))){
+								if(!semantic::AssignValid((Token*)(((Type*)($1))->type),(Expression*)($4))){
 									output::errorMismatch(yylineno);
 									exit(1);
 								}
-								symbol_table->insert($1, $2); 
-								$$ = new Declaration(((Token*)($1)), ((Token*)($2)), ((Token*)($4))); 
-								storeInStack(symbol_table, (Token*)($2), (Expression*)($4), (Token*)($1));
+								symbol_table->insert(((Type*)($1))->type, $2); 
+								$$ = new Declaration(((Type*)($1)), ((Token*)($2)), ((Token*)($4))); 
+								if(((Type*)($1))->type->token.compare("SET") == 0){
+									$$->register_name = storeSet(symbol_table, (Token*)($2), (Expression*)($4), (Set*)($1));
+								}
+								else
+									storeInStack(symbol_table, (Token*)($2), (Expression*)($4), (Type*)($1));
 								}
 	| ID ASSIGN Exp SC { 	
 							if(!symbol_table->isIdentifierDeclared(((Token*)($1))->token)){
 								output::errorUndef(yylineno,((Token*)($1))->token);
 								exit(1);
 							}
-							// symbol_table->validateAssign($1, $3, yylineno);
 							string id_type = symbol_table->getType($1);
 							Token* id_type_t = new Token(id_type);
+							Type* type = new Type(id_type_t);
 							if(!semantic::AssignValid(id_type_t,(Expression*)($3))){
 								output::errorMismatch(yylineno);
 								delete id_type_t;
 								exit(1);
 							}
 							$$ = new Assignment($1, $3); 
-							storeInStack(symbol_table, (Token*)($1), (Expression*)($3), id_type_t);
+							if(id_type.compare("SET") == 0){
+								$$->register_name = copySet(symbol_table, (Token*)($1), (Expression*)($3));
+							}
+							else
+								storeInStack(symbol_table, (Token*)($1), (Expression*)($3), type);
 							delete id_type_t;
 							}
 	| Call SC { $$ = $1; }
 	| RETURN SC { 	symbol_table->validateRetType(nullptr, yylineno);
-					$$ = new Return(); }
+					$$ = new Return(); 
+					retFromFunction();
+				}
 	| RETURN Exp SC { 	symbol_table->validateRetType($2, yylineno);
-						$$ = new Return((Expression*)($1)); }
+						$$ = new Return((Expression*)($1)); 
+						retFromFunction((Expression*)($2));
+					}
 
 	| IF LPAREN Exp RPAREN MIF M Statement { symbol_table->exitScope(); $$ = new If($3, $5);
 											 bpatch($3->truelist, ((Marker*)($6))->label);
 											 $$->nextlist = merge($7->nextlist, $3->falselist);
+											 $$->continuelist = $7->continuelist;
+											 $$->breaklist = $7->breaklist;
 											}
 
 	| IF LPAREN Exp RPAREN MIF M Statement ELSE { symbol_table->exitScope(); symbol_table->enterScope();
@@ -176,25 +197,37 @@ Statement:
 												   $7->nextlist = merge($7->nextlist, makelist({address, FIRST}));
 												   $$->nextlist = merge($7->nextlist, $11->nextlist);												   
 												   bpatch($$->nextlist, label);
+												   $$->nextlist = vector<pair<int,BranchLabelIndex>>();
+												   $$->continuelist = merge($7->continuelist, $11->continuelist);
+												   $$->breaklist = merge($7->breaklist, $11->breaklist);
 												}
 
 	| WHILE LPAREN M Exp RPAREN { symbol_table->enterScope(true); }
 		 			M Statement { symbol_table->exitScope(); $$ = new While($3, $5);
-					 			  bpatch($4->truelist, ((Marker*)($6))->label);
-								  bpatch($7->nextlist, ((Marker*)($3))->label);
-								  $$->nextlist = $4->nextlist;
+					 			  bpatch($4->truelist, ((Marker*)($7))->label);
+								  bpatch($8->nextlist, ((Marker*)($3))->label);
+								  bpatch($8->continuelist, ((Marker*)($3))->label);
+								  $$->nextlist = merge($4->falselist, $8->breaklist);
+								  int address = emit("br label@");
+								  bpatch(makelist({address, FIRST}), ((Marker*)($3))->label);
 		  						}
 
 	| BREAK SC { if(!symbol_table->isWhileScope()){
 					output::errorUnexpectedBreak(yylineno);
 					exit(1);
 				}
-				$$ = $1; }
+				$$ = $1; 
+				int address = emit("br label @");
+				$$->breaklist = makelist({address, FIRST});
+				}
 	| CONTINUE SC { if(!symbol_table->isWhileScope()){
 						output::errorUnexpectedContinue(yylineno);
 						exit(1);
 					}
-					$$ = $1; }
+					$$ = $1;
+					int address = emit("br label @");
+					$$->continuelist = makelist({address, FIRST});
+					}
 ;
 MIF:
 	/*epsilon*/ { symbol_table->enterScope(); }
@@ -208,25 +241,31 @@ Call:
 									exit(1);
 								}
 								string ret_type = symbol_table->getType($1, true);
-								$$ = new Call((Token*)($1), (ExpList*)($3), ret_type); 
-								callFunction(ret_type, ((Token*)($1)), ((ExpList*)($3)));
+								$$ = new Call((Token*)($1), (ExpList*)($3), ret_type);
+								callFunction(((Call*)($$)), ret_type, ((Token*)($1)), ((ExpList*)($3)));
+								$$->nextlist = $3->nextlist;
 							}
 								
 	| ID LPAREN RPAREN { 		symbol_table->validateFunctionCall($1, yylineno);
 								string ret_type = symbol_table->getType($1, true);
 								$$ = new Call((Token*)($1),ret_type);
-								callFunction(ret_type, ((Token*)($1))); }
+								callFunction(((Call*)($$)), ret_type, ((Token*)($1))); }
 ;
 ExpList:
 	Exp { $$ = new ExpList((Expression*)($1)); }
-	| Exp COMMA ExpList { $$ = new ExpList((Expression*)($1), (ExpList*)($3)); }
+	| Exp {	
+		if(((Expression*)($1))->type.compare("BOOL") == 0)
+				$1->label = genLabel();
+		  }
+		COMMA ExpList { $$ = new ExpList((Expression*)($1), (ExpList*)($4)); }
 ;
 Type:
-	INT { $$ = $1; }
-	| BYTE { $$ = $1; }
-	| BOOL { $$ = $1; }
+	INT { $$ = new Type((Token*)($1)); }
+	| BYTE { $$ = new Type((Token*)($1)); }
+	| BOOL { $$ = new Type((Token*)($1)); }
 	| SET LBRACKET NUM DOTS NUM RBRACKET {  symbol_table->validateSetRange($3, $5, yylineno);
-											$$ = $1; }
+											$$ = new Set((Token*)($3), (Token*)($5)); 
+										}
 ;
 Exp:
 	LPAREN Exp RPAREN { $$ = $2; }
@@ -244,7 +283,11 @@ Exp:
 							}
 							$$ = new Binop((Expression*)($1), (Token*)($2), (Expression*)($3)); 
 							$$->register_name = freshReg();
-							arithmeticCalc((Expression*)($$), (Expression*)($1), (Token*)($2), (Expression*)($3));
+
+							if(((Expression*)($1))->type.compare("SET") == 0 || ((Expression*)($3))->type.compare("SET") == 0)
+								$$->register_name = setOperators((Expression*)($1), (Token*)($2), (Expression*)($3));
+							else
+								arithmeticCalc((Expression*)($$), (Expression*)($1), (Token*)($2), (Expression*)($3));
 							}
 	| ID { 					if(!symbol_table->isIdentifierDeclared(((Token*)($1))->token)){
 									output::errorUndef(yylineno, ((Token*)($1))->token);
@@ -264,7 +307,7 @@ Exp:
 				}
 				$$ = new NumB((Num*)($1));
 				$$->register_name = freshReg();
-				emit($$->register_name + " = add i32 " + ((Num*)($1))->num->token + ", 0"); 
+				emit($$->register_name + " = add i32 " + ((Token*)($1))->token + ", 0"); 
 			}
 	| STRING { $$ = new StringExp((Token*)($1));
 				emitString((Node*)($$), (Token*)($1));
@@ -321,12 +364,17 @@ Exp:
 								output::errorMismatch(yylineno);
 								exit(1);
 							}
-							$$ = new Relop((Expression*)($1), (Token*)($3), (Expression*)($2)); }
+							$$ = new Relop((Expression*)($1), (Token*)($3), (Expression*)($2));
+							isInSet((Expression*)($$), (Num*)($1), (Expression*)($3));
+							
+							}
 	| LPAREN Type RPAREN Exp { if(!symbol_table->validateConversion($2, $4)){
 								output::errorMismatch(yylineno);
 								exit(1);
 							}
-							$$ = new Expression("INT"); }
+							$$ = new Expression("INT");
+							$$->register_name = getSetSize((Expression*)($4));
+							}
 ;
 
 M: { int buf_address = emit("br label @");

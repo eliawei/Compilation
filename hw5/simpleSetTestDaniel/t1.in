@@ -1,0 +1,47 @@
+byte foo1(byte x) {
+	return x + 10b;
+}
+
+bool foo2(int y, int z) {
+	return y < z;
+}
+
+bool foo3(byte n, int w) {
+	if (n != w)
+		return false;
+	return true;
+}
+
+set[1..100] addToSet(set[1..100] s, int x) {
+	return s + x;
+}
+
+bool setTooBig(set[1..200] s, int size) {
+	return (int)s > size;
+}
+
+void main() {
+	print("Starting...");
+	byte x = 0b;
+	set[1..100] mySet;
+	int y = 30;
+	while (foo2(x, 100b)) {
+		x = foo1(x);
+		if (foo3(30b, x) or foo3(70b, x)) {
+			print("skipped element:");
+			printi(y);
+			y = 70;
+			continue;
+		} else {
+			mySet = addToSet(mySet, foo1(x));
+			print("added the element:");
+			printi(x);
+			if (setTooBig(mySet, 6b))
+			break;
+		}
+	}
+	print("Set size equals:");
+	printi((int)mySet);
+	print("Finished");
+	return;
+}
